@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import data
-from data import save_to_file, save_to_excel, refresh_dependencies, add_new_person_with_context, remove_person_and_rebalance, reload_current_data, get_available_years, load_year_data, get_current_year
+from data import save_to_file, save_to_excel, refresh_dependencies, add_new_person_with_context, remove_person_and_rebalance, reload_current_data, get_available_years, load_year_data, get_current_year, get_week_data, update_week_data
 from schedule import show_schedule
 import datetime
+import re
 
 # Try to import theme integration, fallback to basic styling if not available
 try:
@@ -628,43 +629,51 @@ def update_person_combos():
 def add_date_or_week():
     week_selection = week_var.get().strip()
     year_selection = manual_year_var.get().strip()
+
+    print(f"Selected Week: {week_selection}, Selected Year: {year_selection}")
+
+    # Autofill person1 and person2 if week exists
+    if week_selection and year_selection:
+        week_number = week_selection.replace("KW ", "").strip()
+        existing_data = get_week_data(year_selection, week_number)
+        print(f"Existing Data for Week {week_number}: {existing_data}")
+        if existing_data[0] or existing_data[1]:
+            person1_var.set(existing_data[0] or "")
+            person2_var.set(existing_data[1] or "")
+
     person1 = person1_var.get().strip()
     person2 = person2_var.get().strip()
 
     if not week_selection or not year_selection or not person1 or not person2:
         messagebox.showerror("Error", "Please fill in all fields.")
         return
-    
+
     if person1 == person2:
         messagebox.showerror("Error", "Please select two different people.")
         return
-        
+
     if person1 not in data.PEOPLE or person2 not in data.PEOPLE:
         messagebox.showerror("Error", "Please select valid people from the list.")
         return
 
     # Extract week number from KW format (e.g., "KW 15" -> "15")
     week_number = week_selection.replace("KW ", "").strip()
-    
-    # Create schedule entry with year and week
-    schedule_entry = f"{year_selection} {week_selection}: {person1} and {person2}"
 
-    # Append to watering history
-    data.watering_history[person1].append(schedule_entry)
-    data.watering_history[person2].append(schedule_entry)
+    # Overwrite week data
+    update_week_data(year_selection, week_number, person1, person2)
 
     # Save changes to JSON file
     save_to_file()
 
     # Save to Excel
-    save_to_excel([schedule_entry], data.PEOPLE, data.watering_history, new_year=False)
-    
+    save_to_excel([f"{year_selection} {week_selection}: {person1} and {person2}"], data.PEOPLE, data.watering_history, new_year=False)
+
     # Clear entries
     week_var.set("")
     manual_year_var.set("")
     person1_var.set("")
     person2_var.set("")
-    
+
     update_people_list()
     update_schedule_display()
     update_status()
@@ -710,6 +719,22 @@ def delete_date_or_week():
         update_schedule_display()
         update_status()
         messagebox.showinfo("Success", f"Entry for {year_selection} {week_selection} deleted successfully.")
+
+def get_all_weeks_assignments():
+    # Aggregate all week assignments from watering_history
+    week_assignments = {}
+    for person, entries in data.watering_history.items():
+        for entry in entries:
+            m = re.match(r"(\d{4} KW \d+): (.+) and (.+)", entry)
+            if m:
+                week, p1, p2 = m.group(1), m.group(2), m.group(3)
+                week_assignments[week] = (p1, p2)
+    # Sort by week number
+    def week_sort_key(week):
+        year, kw = re.match(r"(\d{4}) KW (\d+)", week).groups()
+        return (int(year), int(kw))
+    return [ (week, week_assignments[week][0], week_assignments[week][1]) 
+             for week in sorted(week_assignments, key=week_sort_key) ]
 
 # Initialize the GUI
 def update_all_displays():
@@ -779,5 +804,25 @@ def show_help():
 # Initialize everything
 initialize_gui()
 setup_keyboard_shortcuts()
+
+# Autofill person1 and person2 when week or year changes
+def autofill_persons_for_week(*args):
+    week_selection = week_var.get().strip()
+    year_selection = manual_year_var.get().strip()
+    if week_selection and year_selection:
+        week_number = week_selection.replace("KW ", "").strip()
+        existing_data = get_week_data(year_selection, week_number)
+        if existing_data and (existing_data[0] or existing_data[1]):
+            person1_var.set(existing_data[0] or "")
+            person2_var.set(existing_data[1] or "")
+        else:
+            person1_var.set("")
+            person2_var.set("")
+
+# Bind autofill to week and year changes
+week_var.trace_add("write", autofill_persons_for_week)
+manual_year_var.trace_add("write", autofill_persons_for_week)
+week_combo.bind('<<ComboboxSelected>>', lambda e: autofill_persons_for_week())
+manual_year_combo.bind('<<ComboboxSelected>>', lambda e: autofill_persons_for_week())
 
 root.mainloop()

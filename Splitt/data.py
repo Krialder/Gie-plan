@@ -420,4 +420,40 @@ def remove_person_and_rebalance(name):
     save_to_file()
     return True
 
+def get_week_data(year, week):
+    """Find the two people assigned for a given year and week."""
+    target_file = f"people_{year}.json"
+    if os.path.exists(target_file):
+        with open(target_file, "r") as file:
+            data = json.load(file)
+        wh = data.get("WATERING_HISTORY", {})
+        week_str = f"{year} KW {week}:"
+        for entries in wh.values():
+            for entry in entries:
+                if entry.startswith(week_str):
+                    # Example entry: "2025 KW 30: Jan and Jeff"
+                    try:
+                        people_part = entry.split(":")[1].strip()
+                        person1, _, person2 = people_part.partition(" and ")
+                        return [person1.strip(), person2.strip()]
+                    except Exception:
+                        continue
+    return ["", ""]
+
+def update_week_data(year, week, person1, person2):
+    """Update data for a specific week in a given year."""
+    target_file = f"people_{year}.json"
+    if os.path.exists(target_file):
+        with open(target_file, "r") as file:
+            data = json.load(file)
+    else:
+        data = {"watering_history": {}}
+
+    # Update the week data
+    data["watering_history"][week] = [person1, person2]
+
+    # Save back to the file
+    with open(target_file, "w") as file:
+        json.dump(data, file, indent=2)
+
 
