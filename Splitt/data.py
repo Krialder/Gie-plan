@@ -6,6 +6,41 @@ from tkinter import messagebox
 
 FILE_PATH = "people.json"
 
+# Function to migrate data from people.json to people_YEAR.json format
+def migrate_people_json_to_year_specific():
+    """Migrate data from people.json to people_YEAR.json format"""
+    current_year = datetime.date.today().year
+    
+    # If people.json exists and people_YEAR.json doesn't exist, migrate it
+    if os.path.exists("people.json") and not os.path.exists(f"people_{current_year}.json"):
+        try:
+            # Read the current people.json
+            with open("people.json", "r") as file:
+                data = json.load(file)
+            
+            # Save it as people_YEAR.json
+            with open(f"people_{current_year}.json", "w") as file:
+                json.dump(data, file, indent=2)
+            
+            print(f"Migrated people.json to people_{current_year}.json")
+            return True
+        except Exception as e:
+            print(f"Error migrating people.json: {e}")
+            return False
+    return False
+
+def ensure_year_specific_files():
+    """Ensure all data is in year-specific file format"""
+    current_year = datetime.date.today().year
+    
+    # Migrate people.json to year-specific format
+    if migrate_people_json_to_year_specific():
+        print(f"Successfully migrated people.json to people_{current_year}.json")
+    
+    # Update FILE_PATH to use current year file
+    global FILE_PATH
+    FILE_PATH = f"people_{current_year}.json"
+
 # Function to get all available year files
 def get_available_years():
     """Get all available years from existing data files"""
@@ -33,41 +68,72 @@ def load_year_data(year):
     
     current_year = datetime.date.today().year
     
-    # Determine file path
-    if year == current_year and os.path.exists("people.json"):
-        target_file = "people.json"
-    else:
-        target_file = f"people_{year}.json"
+    # First, migrate people.json to year-specific format if needed
+    if year == current_year:
+        migrate_people_json_to_year_specific()
     
+    # Always use year-specific file format
+    target_file = f"people_{year}.json"
+    
+    # Try to load the file
     if os.path.exists(target_file):
         try:
             with open(target_file, "r") as file:
                 data = json.load(file)
-                PEOPLE = data.get("PEOPLE", [])
-                WEIGHTS = data.get("WEIGHTS", [])
-                watering_history = data.get("WATERING_HISTORY", {})
+                PEOPLE.clear()
+                PEOPLE.extend(data.get("PEOPLE", []))
+                WEIGHTS.clear()
+                WEIGHTS.extend(data.get("WEIGHTS", []))
+                watering_history.clear()
+                watering_history.update(data.get("WATERING_HISTORY", {}))
                 FILE_PATH = target_file
                 return True
         except json.JSONDecodeError:
             return False
-    return False
+    else:
+        # File doesn't exist, create it only if switching to current year
+        if year == current_year:
+            # Create default file for current year
+            PEOPLE.clear()
+            PEOPLE.extend(["Jan", "Jeff", "Antonia", "Melissa", "Rosa", "Alexander"])
+            WEIGHTS.clear()
+            WEIGHTS.extend([1, 2, 1, 1, 2, 1])
+            watering_history.clear()
+            watering_history.update({person: [] for person in PEOPLE})
+            FILE_PATH = target_file
+            
+            try:
+                with open(target_file, "w") as file:
+                    json.dump({"PEOPLE": PEOPLE, "WEIGHTS": WEIGHTS, "WATERING_HISTORY": watering_history}, file, indent=2)
+                return True
+            except:
+                return False
+        else:
+            # Don't create files for other years automatically
+            return False
 
-# Function to get the most recent people file
+# Function to get the current year's people file
 def get_current_people_file():
     current_year = datetime.date.today().year
     
-    # Check for year-specific files, prioritizing the most recent
-    # Check several years ahead (in case of multiple year transitions), then current, then previous years
-    for year in range(current_year + 5, current_year - 3, -1):  # Check current+5 down to current-2
-        year_file = f"people_{year}.json"
-        if os.path.exists(year_file):
-            return year_file
+    # First, try to get the current year's file
+    current_year_file = f"people_{current_year}.json"
+    if os.path.exists(current_year_file):
+        return current_year_file
     
-    # Fall back to default file
-    return "people.json"
+    # If current year file doesn't exist, check for people.json
+    if os.path.exists("people.json"):
+        return "people.json"
+    
+    # If neither exists, return the current year file path (will be created)
+    return current_year_file
 
-# Use the most recent people file
-FILE_PATH = get_current_people_file()
+# Migrate people.json to year-specific format on startup
+current_year = datetime.date.today().year
+migrate_people_json_to_year_specific()
+
+# Always start with the current year (2025)
+FILE_PATH = f"people_{current_year}.json"
 
 # Load names from file or use default ones
 if os.path.exists(FILE_PATH):
@@ -101,18 +167,20 @@ def get_current_year():
         return int(match.group(1)) if match else datetime.date.today().year
 
 def reload_current_data():
-    """Reload data from the most current file"""
+    """Reload data from the currently selected file"""
     global FILE_PATH, PEOPLE, WEIGHTS, watering_history
     
-    FILE_PATH = get_current_people_file()
-    
+    # Use the current FILE_PATH instead of getting the most recent file
     if os.path.exists(FILE_PATH):
         try:
             with open(FILE_PATH, "r") as file:
                 data = json.load(file)
-                PEOPLE = data.get("PEOPLE", [])
-                WEIGHTS = data.get("WEIGHTS", [])
-                watering_history = data.get("WATERING_HISTORY", {})
+                PEOPLE.clear()
+                PEOPLE.extend(data.get("PEOPLE", []))
+                WEIGHTS.clear()
+                WEIGHTS.extend(data.get("WEIGHTS", []))
+                watering_history.clear()
+                watering_history.update(data.get("WATERING_HISTORY", {}))
         except json.JSONDecodeError:
             pass  # Keep current data if file is corrupted
 
@@ -306,34 +374,19 @@ def refresh_dependencies():
     save_to_file()
 
 def add_new_person_with_context(name, join_week=None):
-    """Add a new person with context-appropriate initial weight"""
+    """Add a new person with weight equal to the average of all other people combined"""
     if name in PEOPLE:
         return False
     
-    # Calculate system context - filter out non-list entries
-    all_week_entries = []
-    for entries in watering_history.values():
-        if isinstance(entries, list):
-            for entry in entries:
-                if entry.startswith("Week"):
-                    all_week_entries.append(entry)
-    
-    total_weeks_active = len(set(all_week_entries)) if all_week_entries else 1
-    
-    # Calculate appropriate initial weight based on when they join
-    if total_weeks_active <= 4:
-        # Early in system: standard weight
-        initial_weight = 5
-    elif total_weeks_active <= 52:
-        # Mid-system: higher weight to catch up
-        list_histories = [history for history in watering_history.values() if isinstance(history, list)]
-        average_waterings = sum(len(history) for history in list_histories) / len(PEOPLE) if PEOPLE else 0
-        initial_weight = max(1, int(8 + average_waterings))
+    # Calculate the average weight of all existing people
+    if PEOPLE and WEIGHTS:
+        # Calculate average weight of all existing people
+        average_weight = sum(WEIGHTS) / len(WEIGHTS)
+        # Set new person's weight to the average of all others combined
+        initial_weight = max(1, int(round(average_weight)))
     else:
-        # Late in system: significantly higher weight to catch up quickly
-        list_histories = [history for history in watering_history.values() if isinstance(history, list)]
-        average_waterings = sum(len(history) for history in list_histories) / len(PEOPLE) if PEOPLE else 0
-        initial_weight = max(1, int(10 + average_waterings))
+        # If no people exist yet, use default weight
+        initial_weight = 5
     
     PEOPLE.append(name)
     WEIGHTS.append(initial_weight)

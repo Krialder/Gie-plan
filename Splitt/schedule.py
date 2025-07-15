@@ -19,7 +19,7 @@ def calculate_weighted_score(person_index, selection_count, total_weeks_active=N
     
     # Calculate how long this person has been in the system
     if total_weeks_active is None:
-        total_weeks_active = max(1, len([entry for entries in data.watering_history.values() for entry in entries if entry.startswith("Week")]) // len(data.PEOPLE))
+        total_weeks_active = max(1, len([entry for entries in data.watering_history.values() for entry in entries if "KW" in entry]) // len(data.PEOPLE))
     
     # Normalize watering count based on time active
     # For short-term people (< 4 weeks), give higher initial priority
@@ -55,7 +55,7 @@ def select_people_weighted_mean(selection_count):
     for entries in data.watering_history.values():
         if isinstance(entries, list):
             for entry in entries:
-                if entry.startswith("Week"):
+                if "KW" in entry:
                     all_week_entries.append(entry)
     
     total_weeks_active = len(set(all_week_entries)) if all_week_entries else 1
@@ -109,7 +109,7 @@ def select_people_weighted_mean(selection_count):
     
     return selected
 
-def generate_schedule():
+def generate_schedule(schedule_type="Next 6 Weeks"):
     # Reload data to ensure we're using the most current file
     reload_current_data()
     
@@ -134,20 +134,46 @@ def generate_schedule():
     for person in data.watering_history.values():
         if isinstance(person, list):
             for entry in person:
-                if entry.startswith("Week"):
+                if "KW" in entry:
                     week_entries_found.append(entry)
     
     if week_entries_found:
-        last_week = max([int(entry.split()[1]) for entry in week_entries_found])
-        start_week = last_week + 1
+        # Extract week numbers from KW entries (e.g., "2025 KW 15: ..." -> 15)
+        week_numbers = []
+        for entry in week_entries_found:
+            if "KW" in entry:
+                try:
+                    # Find KW pattern and extract number
+                    import re
+                    match = re.search(r'KW (\d+)', entry)
+                    if match:
+                        week_numbers.append(int(match.group(1)))
+                except:
+                    pass
+        
+        if week_numbers:
+            last_week = max(week_numbers)
+            start_week = last_week + 1
+        else:
+            start_week = current_week + 1
     else:
         start_week = current_week + 1
 
     max_week = 52
     week = start_week
     
-    # Generate 6 weeks of schedule
-    for _ in range(6):
+    # Calculate number of weeks to generate based on schedule type
+    if schedule_type == "Remaining Weeks":
+        # Calculate remaining weeks in current year
+        if week <= max_week:
+            weeks_to_generate = max_week - week + 1
+        else:
+            weeks_to_generate = 52  # Start new year
+    else:  # "Next 6 Weeks"
+        weeks_to_generate = 6
+    
+    # Generate schedule for the calculated number of weeks
+    for _ in range(weeks_to_generate):
         # Handle year transition
         if week > max_week:
             # Save only the new weeks generated in the current year
@@ -183,9 +209,9 @@ def generate_schedule():
 
         for person in selected:
             selection_count[person] += 1
-            data.watering_history[person].append(f"Week {week}")
+            data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
 
-        week_entry = f"Week {week}: {selected[0]} and {selected[1]}"
+        week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
         new_weeks_only.append(week_entry)
         full_schedule.append(week_entry)
         week += 1
@@ -198,9 +224,9 @@ def generate_schedule():
     
     return full_schedule
 
-def show_schedule():
+def show_schedule(schedule_type="Next 6 Weeks"):
     # Reload current data before generating schedule
     reload_current_data()
-    schedule = generate_schedule()
+    schedule = generate_schedule(schedule_type)
     result = "\n".join(schedule)
     messagebox.showinfo("Gießplan", result)
