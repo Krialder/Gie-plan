@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
-from data import save_to_file, save_to_excel, refresh_dependencies, PEOPLE, WEIGHTS, watering_history
+import data
+from data import save_to_file, save_to_excel, refresh_dependencies, add_new_person_with_context, remove_person_and_rebalance, reload_current_data
 from schedule import show_schedule
 
 # Create the GUI
@@ -15,24 +16,25 @@ name_entry.pack(pady=5)
 
 def add_person():
     name = name_entry.get()
-    if name.isalpha() and name not in PEOPLE:
-        PEOPLE.append(name)
-        WEIGHTS.append(1)  # Default weight for new person
-        watering_history[name] = []
-        update_people_list()
-        refresh_dependencies()
+    if name.isalpha() and name not in data.PEOPLE:
+        if add_new_person_with_context(name):
+            update_people_list()
+            refresh_dependencies()
+            messagebox.showinfo("Success", f"Added {name} with context-appropriate weight.")
+        else:
+            messagebox.showerror("Error", "Failed to add person.")
     else:
         messagebox.showerror("Error", "Invalid or duplicate name.")
 
 def delete_person():
     name = name_entry.get()
-    if name in PEOPLE:
-        index = PEOPLE.index(name)
-        PEOPLE.pop(index)
-        WEIGHTS.pop(index)
-        watering_history.pop(name, None)
-        update_people_list()
-        refresh_dependencies()
+    if name in data.PEOPLE:
+        if remove_person_and_rebalance(name):
+            update_people_list()
+            refresh_dependencies()
+            messagebox.showinfo("Success", f"Removed {name} and rebalanced system.")
+        else:
+            messagebox.showerror("Error", "Failed to remove person.")
     else:
         messagebox.showerror("Error", "Name not found.")
 
@@ -47,14 +49,14 @@ people_list = tk.Listbox(root, width=50)
 people_list.pack(pady=10)
 
 def update_people_list():
-    for person in PEOPLE:
-        if person not in watering_history:
-            watering_history[person] = []
-    for person in list(watering_history.keys()):
-        if person not in PEOPLE:
-            del watering_history[person]
+    for person in data.PEOPLE:
+        if person not in data.watering_history:
+            data.watering_history[person] = []
+    for person in list(data.watering_history.keys()):
+        if person not in data.PEOPLE:
+            del data.watering_history[person]
     people_list.delete(0, tk.END)
-    for person in PEOPLE:
+    for person in data.PEOPLE:
         people_list.insert(tk.END, person)
 
 update_people_list()
@@ -92,14 +94,14 @@ def add_date_or_week():
             schedule_entry = f"Date {date_or_week}: {person1} and {person2}"
 
         # Append to watering history
-        watering_history[person1].append(schedule_entry)
-        watering_history[person2].append(schedule_entry)
+        data.watering_history[person1].append(schedule_entry)
+        data.watering_history[person2].append(schedule_entry)
 
         # Save changes to JSON file
         save_to_file()
 
         # Save to Excel
-        save_to_excel([schedule_entry], PEOPLE, watering_history)
+        save_to_excel([schedule_entry], data.PEOPLE, data.watering_history, new_year=False)
         messagebox.showinfo("Success", "Date/Week added successfully.")
     else:
         messagebox.showerror("Error", "Invalid input. Please provide a date/week and two people.")
@@ -108,14 +110,14 @@ def delete_date_or_week():
     date_or_week = date_entry.get()
 
     if date_or_week:
-        for person in PEOPLE:
-            watering_history[person] = [entry for entry in watering_history[person] if not entry.startswith(date_or_week)]
+        for person in data.PEOPLE:
+            data.watering_history[person] = [entry for entry in data.watering_history[person] if not entry.startswith(date_or_week)]
 
         # Save changes to JSON file
         save_to_file()
 
         # Save updated history to Excel
-        save_to_excel([], PEOPLE, watering_history)
+        save_to_excel([], data.PEOPLE, data.watering_history, new_year=False)
         messagebox.showinfo("Success", "Date/Week deleted successfully.")
     else:
         messagebox.showerror("Error", "Invalid input. Please provide a date/week.")
