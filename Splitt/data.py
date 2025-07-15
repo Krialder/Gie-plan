@@ -6,6 +6,52 @@ from tkinter import messagebox
 
 FILE_PATH = "people.json"
 
+# Function to get all available year files
+def get_available_years():
+    """Get all available years from existing data files"""
+    years = []
+    current_year = datetime.date.today().year
+    
+    # Check for default file (current year)
+    if os.path.exists("people.json"):
+        years.append(current_year)
+    
+    # Check for year-specific files
+    for year in range(current_year - 5, current_year + 10):  # Check wide range
+        year_file = f"people_{year}.json"
+        if os.path.exists(year_file):
+            years.append(year)
+    
+    # Remove duplicates and sort
+    years = sorted(list(set(years)))
+    return years
+
+# Function to load data from specific year
+def load_year_data(year):
+    """Load data from a specific year file"""
+    global FILE_PATH, PEOPLE, WEIGHTS, watering_history
+    
+    current_year = datetime.date.today().year
+    
+    # Determine file path
+    if year == current_year and os.path.exists("people.json"):
+        target_file = "people.json"
+    else:
+        target_file = f"people_{year}.json"
+    
+    if os.path.exists(target_file):
+        try:
+            with open(target_file, "r") as file:
+                data = json.load(file)
+                PEOPLE = data.get("PEOPLE", [])
+                WEIGHTS = data.get("WEIGHTS", [])
+                watering_history = data.get("WATERING_HISTORY", {})
+                FILE_PATH = target_file
+                return True
+        except json.JSONDecodeError:
+            return False
+    return False
+
 # Function to get the most recent people file
 def get_current_people_file():
     current_year = datetime.date.today().year
@@ -43,6 +89,16 @@ else:
     watering_history = {person: [] for person in PEOPLE}
     with open(FILE_PATH, "w") as file:
         json.dump({"PEOPLE": PEOPLE, "WEIGHTS": WEIGHTS, "WATERING_HISTORY": watering_history}, file)
+
+def get_current_year():
+    """Get the year currently being worked on"""
+    if FILE_PATH.endswith("people.json"):
+        return datetime.date.today().year
+    else:
+        # Extract year from filename like "people_2026.json"
+        import re
+        match = re.search(r'people_(\d{4})\.json', FILE_PATH)
+        return int(match.group(1)) if match else datetime.date.today().year
 
 def reload_current_data():
     """Reload data from the most current file"""
