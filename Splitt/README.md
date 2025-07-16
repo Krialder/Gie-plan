@@ -37,10 +37,7 @@ To use this project, ensure you have Python installed on your system. Additional
      sudo dnf install python3-tkinter
      ```
 
-2. Install `openpyxl` for Excel interaction:
-   ```bash
-   pip install openpyxl
-   ```
+2. Excel functionality has been removed - the application now uses JSON-only data storage.
 
 ## How the Code Works
 
