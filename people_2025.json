@@ -1,0 +1,87 @@
+{
+  "PEOPLE": [
+    "Jan",
+    "Jeff",
+    "Antonia",
+    "Melissa",
+    "Rosa",
+    "Alexander"
+  ],
+  "WEIGHTS": [
+    7,
+    7,
+    7,
+    7,
+    8,
+    8
+  ],
+  "EXTRA_WEIGHTS": [
+    3,
+    3,
+    3,
+    3,
+    4,
+    4
+  ],
+  "WATERING_HISTORY": {
+    "Jan": [
+      "2025 KW 30: Jan and Jeff (ErsatzPersons: Rosa and Alexander)",
+      "2025 KW 33: Jan and Jeff (ErsatzPersons: Alexander and Melissa)",
+      "2025 KW 36: Jan and Jeff (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 39: Jan and Jeff (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 42: Jan and Jeff (ErsatzPersons: Melissa and Rosa)",
+      "2025 KW 45: Jan and Jeff (ErsatzPersons: Antonia and Rosa)",
+      "2025 KW 48: Jan and Jeff (ErsatzPersons: Alexander and Antonia)",
+      "2025 KW 51: Jan and Jeff (ErsatzPersons: Alexander and Antonia)"
+    ],
+    "Jeff": [
+      "2025 KW 30: Jan and Jeff (ErsatzPersons: Rosa and Alexander)",
+      "2025 KW 33: Jan and Jeff (ErsatzPersons: Alexander and Melissa)",
+      "2025 KW 36: Jan and Jeff (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 39: Jan and Jeff (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 42: Jan and Jeff (ErsatzPersons: Melissa and Rosa)",
+      "2025 KW 45: Jan and Jeff (ErsatzPersons: Antonia and Rosa)",
+      "2025 KW 48: Jan and Jeff (ErsatzPersons: Alexander and Antonia)",
+      "2025 KW 51: Jan and Jeff (ErsatzPersons: Alexander and Antonia)"
+    ],
+    "Antonia": [
+      "2025 KW 31: Antonia and Melissa (ErsatzPersons: Jeff and Alexander)",
+      "2025 KW 34: Antonia and Melissa (ErsatzPersons: Jan and Alexander)",
+      "2025 KW 37: Antonia and Melissa (ErsatzPersons: Rosa and Jan)",
+      "2025 KW 40: Antonia and Melissa (ErsatzPersons: Rosa and Jeff)",
+      "2025 KW 43: Antonia and Melissa (ErsatzPersons: Rosa and Alexander)",
+      "2025 KW 46: Antonia and Melissa (ErsatzPersons: Rosa and Jan)",
+      "2025 KW 49: Antonia and Melissa (ErsatzPersons: Jeff and Jan)",
+      "2025 KW 52: Antonia and Melissa (ErsatzPersons: Rosa and Jan)"
+    ],
+    "Melissa": [
+      "2025 KW 31: Antonia and Melissa (ErsatzPersons: Jeff and Alexander)",
+      "2025 KW 34: Antonia and Melissa (ErsatzPersons: Jan and Alexander)",
+      "2025 KW 37: Antonia and Melissa (ErsatzPersons: Rosa and Jan)",
+      "2025 KW 40: Antonia and Melissa (ErsatzPersons: Rosa and Jeff)",
+      "2025 KW 43: Antonia and Melissa (ErsatzPersons: Rosa and Alexander)",
+      "2025 KW 46: Antonia and Melissa (ErsatzPersons: Rosa and Jan)",
+      "2025 KW 49: Antonia and Melissa (ErsatzPersons: Jeff and Jan)",
+      "2025 KW 52: Antonia and Melissa (ErsatzPersons: Rosa and Jan)"
+    ],
+    "Rosa": [
+      "2025 KW 32: Rosa and Alexander (ErsatzPersons: Jan and Antonia)",
+      "2025 KW 35: Rosa and Alexander (ErsatzPersons: Jan and Antonia)",
+      "2025 KW 38: Rosa and Alexander (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 41: Rosa and Alexander (ErsatzPersons: Jeff and Antonia)",
+      "2025 KW 44: Rosa and Alexander (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 47: Rosa and Alexander (ErsatzPersons: Jeff and Antonia)",
+      "2025 KW 50: Rosa and Alexander (ErsatzPersons: Antonia and Melissa)"
+    ],
+    "Alexander": [
+      "2025 KW 32: Rosa and Alexander (ErsatzPersons: Jan and Antonia)",
+      "2025 KW 35: Rosa and Alexander (ErsatzPersons: Jan and Antonia)",
+      "2025 KW 38: Rosa and Alexander (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 41: Rosa and Alexander (ErsatzPersons: Jeff and Antonia)",
+      "2025 KW 44: Rosa and Alexander (ErsatzPersons: Antonia and Melissa)",
+      "2025 KW 47: Rosa and Alexander (ErsatzPersons: Jeff and Antonia)",
+      "2025 KW 50: Rosa and Alexander (ErsatzPersons: Antonia and Melissa)"
+    ]
+  },
+  "EXPERIENCE_OVERRIDES": {}
+}
