@@ -1,6 +1,7 @@
 import random
 import datetime
 import json
+import os
 import re
 import data
 from data import save_to_file, save_to_excel, reload_current_data, save_new_weeks_to_excel
@@ -153,7 +154,59 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
         
         if week_numbers:
             last_week = max(week_numbers)
-            start_week = last_week + 1
+            # If last week is 52 or higher, start from week 1 of next year
+            if last_week >= 52:
+                if schedule_type == "Next 6 Weeks":
+                    # Ask user if they want to create a new year
+                    response = messagebox.askyesno("Year Complete", 
+                                                f"Year {schedule_year} is complete (week {last_week} was the last week).\n\n"
+                                                f"Do you want to create a new year {schedule_year + 1} and generate 6 weeks there?")
+                    if response:
+                        start_week = 1
+                        schedule_year = schedule_year + 1
+                        
+                        # Create the new year file if it doesn't exist
+                        new_year_file = f"people_{schedule_year}.json"
+                        if not os.path.exists(new_year_file):
+                            try:
+                                # Create new year file with current people but empty watering history
+                                new_year_data = {
+                                    "PEOPLE": data.PEOPLE[:],  # Copy current people
+                                    "WEIGHTS": data.WEIGHTS[:],  # Copy current weights
+                                    "WATERING_HISTORY": {person: [] for person in data.PEOPLE}  # Empty history for new year
+                                }
+                                
+                                # Try to write the file with better error handling
+                                try:
+                                    with open(new_year_file, "w") as file:
+                                        json.dump(new_year_data, file, indent=2)
+                                except PermissionError:
+                                    messagebox.showerror("File Permission Error", 
+                                                       f"Cannot create {new_year_file} - file may be open in another application.\n\n"
+                                                       f"Please close any Excel files or other applications using this file and try again.")
+                                    return []
+                                except Exception as file_error:
+                                    messagebox.showerror("File Creation Error", 
+                                                       f"Failed to create {new_year_file}: {str(file_error)}")
+                                    return []
+                                    
+                                print(f"Created new year file: {new_year_file}")
+                            except Exception as e:
+                                messagebox.showerror("Error", f"Failed to create new year file: {str(e)}")
+                                return []
+                        
+                        # Load the new year data
+                        if not data.load_year_data(schedule_year):
+                            messagebox.showerror("Error", f"Failed to load new year data for {schedule_year}")
+                            return []
+                    else:
+                        # User cancelled, return empty schedule
+                        return []
+                else:
+                    # For "Remaining Weeks", if we're already at week 52, there are no remaining weeks
+                    start_week = 53  # This will result in 0 weeks to generate
+            else:
+                start_week = last_week + 1
         else:
             start_week = current_week + 1
     else:
@@ -161,6 +214,7 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
 
     max_week = 52
     week = start_week
+    year_transition_occurred = False  # Initialize for both schedule types
     
     # Calculate number of weeks to generate based on schedule type
     if schedule_type == "Remaining Weeks":
@@ -168,12 +222,16 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
         if week <= max_week:
             weeks_to_generate = max_week - week + 1
         else:
-            weeks_to_generate = 52  # Start new year
+            weeks_to_generate = 0  # No remaining weeks if we're already past week 52
+            messagebox.showinfo("Year Complete", f"Year {schedule_year} is already complete. No remaining weeks to generate.")
+            return []
         
         # Generate schedule for the calculated number of weeks
         for _ in range(weeks_to_generate):
             # Handle year transition
             if week > max_week:
+                year_transition_occurred = True
+                
                 # Save only the new weeks generated in the current year
                 if new_weeks_only:
                     save_new_weeks_to_excel(new_weeks_only, data.PEOPLE, data.watering_history, target_year=schedule_year)
@@ -215,39 +273,64 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
     
     else:  # "Next 6 Weeks"
         weeks_to_generate = 6
-        year_transition_occurred = False
         
         # Check if we'll cross a year boundary within the next 6 weeks
         weeks_remaining_in_year = max_week - week + 1
         
-        if weeks_remaining_in_year > 0 and weeks_remaining_in_year < weeks_to_generate:
+        # If we're already at or past week 52, or if we need to cross year boundary
+        if weeks_remaining_in_year <= 0 or weeks_remaining_in_year < weeks_to_generate:
             year_transition_occurred = True
             
-            # Step 1: COMPLETELY finish the current year first
-            year_transition_message = f"Year transition detected:\n\n"
-            year_transition_message += f"Step 1: Completing current year {schedule_year} with {weeks_remaining_in_year} weeks remaining...\n"
-            
-            current_year_weeks = []  # Track weeks for current year
-            current_year_start_week = week  # Remember the starting week for this year
-            
-            # Generate ALL remaining weeks for the current year
-            for _ in range(weeks_remaining_in_year):
-                # Use weighted arithmetic mean selection
-                selected = select_people_weighted_mean(selection_count)
+            # If we're already past week 52, skip to new year directly
+            if weeks_remaining_in_year <= 0:
+                year_transition_message = f"Year transition detected:\n\n"
+                year_transition_message += f"Current year {schedule_year - 1} is already complete.\n"
+                year_transition_message += f"Starting new year {schedule_year} with 6 weeks...\n"
+                
+                # We should already be in the new year due to the logic above
+                # Generate all 6 weeks for the new year
+                for _ in range(weeks_to_generate):
+                    # Use weighted arithmetic mean selection
+                    selected = select_people_weighted_mean(selection_count)
 
-                for person in selected:
-                    selection_count[person] += 1
-                    data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
+                    for person in selected:
+                        selection_count[person] += 1
+                        data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
 
-                week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
-                current_year_weeks.append(week_entry)
-                full_schedule.append(week_entry)
-                week += 1
-            
-            # IMMEDIATELY save the completed year's schedule and data
-            if current_year_weeks:
-                save_new_weeks_to_excel(current_year_weeks, data.PEOPLE, data.watering_history, target_year=schedule_year)
-                save_to_file()  # Save current year's data to JSON immediately
+                    week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
+                    new_weeks_only.append(week_entry)
+                    full_schedule.append(week_entry)
+                    week += 1
+                
+                year_transition_message += f"✓ Generated 6 weeks for new year {schedule_year} (KW 1-6)\n"
+                messagebox.showinfo("Year Transition Complete", year_transition_message)
+                
+            else:
+                # We need to finish current year first, then start new year
+                year_transition_message = f"Year transition detected:\n\n"
+                year_transition_message += f"Step 1: Completing current year {schedule_year} with {weeks_remaining_in_year} weeks remaining...\n"
+                
+                current_year_weeks = []  # Track weeks for current year
+                current_year_start_week = week  # Remember the starting week for this year
+                
+                # Generate ALL remaining weeks for the current year
+                for _ in range(weeks_remaining_in_year):
+                    # Use weighted arithmetic mean selection
+                    selected = select_people_weighted_mean(selection_count)
+
+                    for person in selected:
+                        selection_count[person] += 1
+                        data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
+
+                    week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
+                    current_year_weeks.append(week_entry)
+                    full_schedule.append(week_entry)
+                    week += 1
+                
+                # IMMEDIATELY save the completed year's schedule and data
+                if current_year_weeks:
+                    save_new_weeks_to_excel(current_year_weeks, data.PEOPLE, data.watering_history, target_year=schedule_year)
+                    save_to_file()  # Save current year's data to JSON immediately
                 current_year_end_week = week - 1
                 if current_year_start_week == current_year_end_week:
                     year_transition_message += f"✓ Completed and saved 1 week for year {schedule_year} (KW {current_year_start_week})\n"
@@ -340,6 +423,7 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
         
         else:
             # No year boundary crossing, generate normally
+            year_transition_occurred = False
             start_week_for_message = week
             
             for _ in range(weeks_to_generate):

@@ -419,6 +419,7 @@ def update_schedule_display():
     # Sort weeks and create display entries
     sorted_weeks = sorted(week_assignments.keys())
     current_week = datetime.date.today().isocalendar()[1]
+    actual_current_year = datetime.date.today().year
     
     for i, week_num in enumerate(sorted_weeks):
         # Calculate date range for the week
@@ -436,21 +437,25 @@ def update_schedule_display():
         person1 = people[0] if len(people) > 0 else ""
         person2 = people[1] if len(people) > 1 else ""
         
-        # Determine row styling
-        if week_num == current_week:
-            tag = 'current_week'
-        elif week_num == current_week + 1:
-            tag = 'next_week'
+        # Determine row styling - only highlight current/next week if viewing the actual current year
+        if current_year == actual_current_year:
+            if week_num == current_week:
+                tag = 'current_week'
+            elif week_num == current_week + 1:
+                tag = 'next_week'
+            else:
+                tag = 'oddrow' if i % 2 == 0 else 'evenrow'
         else:
+            # For past or future years, just use alternating row colors
             tag = 'oddrow' if i % 2 == 0 else 'evenrow'
         
         # Insert into treeview
         schedule_tree.insert('', 'end', values=(f"KW {week_num}", date_range, person1, person2), tags=(tag,))
     
     # Draw canvas visualization
-    draw_schedule_visualization(sorted_weeks, week_assignments, current_week)
+    draw_schedule_visualization(sorted_weeks, week_assignments, current_week, current_year, actual_current_year)
 
-def draw_schedule_visualization(sorted_weeks, week_assignments, current_week):
+def draw_schedule_visualization(sorted_weeks, week_assignments, current_week, current_year, actual_current_year):
     """Draw a visual representation of the schedule on the canvas"""
     canvas_width = 280
     canvas_height = max(400, len(sorted_weeks) * 60 + 100)
@@ -487,16 +492,22 @@ def draw_schedule_visualization(sorted_weeks, week_assignments, current_week):
     block_width = 260
     
     for i, week_num in enumerate(sorted_weeks):
-        # Determine block color based on week status
-        if week_num == current_week:
-            border_color = canvas_colors['current_week_border']
-            border_width = 3
-            bg_color = canvas_colors['current_week']
-        elif week_num == current_week + 1:
-            border_color = canvas_colors['next_week_border']
-            border_width = 2
-            bg_color = canvas_colors['next_week']
+        # Determine block color based on week status - only highlight current/next week if viewing the actual current year
+        if current_year == actual_current_year:
+            if week_num == current_week:
+                border_color = canvas_colors['current_week_border']
+                border_width = 3
+                bg_color = canvas_colors['current_week']
+            elif week_num == current_week + 1:
+                border_color = canvas_colors['next_week_border']
+                border_width = 2
+                bg_color = canvas_colors['next_week']
+            else:
+                border_color = canvas_colors['border']
+                border_width = 1
+                bg_color = canvas_colors['background']
         else:
+            # For past or future years, just use normal styling
             border_color = canvas_colors['border']
             border_width = 1
             bg_color = canvas_colors['background']
@@ -598,7 +609,7 @@ def generate_and_show_schedule():
                     week_info.append(f"{current_year}: KW {min(week_numbers)}-{max(week_numbers)}")
             
             # Create success message with week ranges
-            success_msg = f"Generated {schedule_type} schedule with {len(new_schedule)} weeks"
+            success_msg = f"Generate {schedule_type} schedule with {len(new_schedule)} weeks"
             if week_info:
                 success_msg += f"\n\nWeeks generated:\n• " + "\n• ".join(week_info)
             
@@ -613,6 +624,10 @@ def generate_and_show_schedule():
         update_people_list()
         update_status()
         
+    except PermissionError:
+        messagebox.showerror("File Permission Error", 
+                           "Cannot access the file - it may be open in another application.\n\n"
+                           "Please close any Excel files or other applications using this file and try again.")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to generate schedule: {str(e)}")
 
@@ -676,15 +691,6 @@ def add_date_or_week():
 
     print(f"Selected Week: {week_selection}, Selected Year: {year_selection}")
 
-    # Autofill person1 and person2 if week exists
-    if week_selection and year_selection:
-        week_number = week_selection.replace("KW ", "").strip()
-        existing_data = get_week_data(year_selection, week_number)
-        print(f"Existing Data for Week {week_number}: {existing_data}")
-        if existing_data[0] or existing_data[1]:
-            person1_var.set(existing_data[0] or "")
-            person2_var.set(existing_data[1] or "")
-
     person1 = person1_var.get().strip()
     person2 = person2_var.get().strip()
 
@@ -703,14 +709,28 @@ def add_date_or_week():
     # Extract week number from KW format (e.g., "KW 15" -> "15")
     week_number = week_selection.replace("KW ", "").strip()
 
-    # Overwrite week data
+    # Check if week already has existing data
+    existing_data = get_week_data(year_selection, week_number)
+    print(f"Existing Data for Week {week_number}: {existing_data}")
+    
+    # If there's existing data, show confirmation dialog
+    if existing_data[0] or existing_data[1]:
+        existing_person1 = existing_data[0] or "Unknown"
+        existing_person2 = existing_data[1] or "Unknown"
+        
+        confirmation_message = f"Are you sure you want to change {week_selection} {year_selection} from {existing_person1} and {existing_person2} to {person1} and {person2}?"
+        
+        if not messagebox.askyesno("Confirm Change", confirmation_message):
+            return
+
+    # Update week data
     update_week_data(year_selection, week_number, person1, person2)
 
-    # Save changes to JSON file
-    save_to_file()
+    # Reload the current data to reflect the changes in the global variables
+    reload_current_data()
 
     # Save to Excel
-    save_to_excel([f"{year_selection} {week_selection}: {person1} and {person2}"], data.PEOPLE, data.watering_history, new_year=False)
+    save_to_excel([f"{year_selection} {week_selection}: {person1} and {person2}"], data.PEOPLE, data.watering_history, new_year=False, target_year=int(year_selection))
 
     # Clear entries
     week_var.set("")

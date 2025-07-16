@@ -106,7 +106,11 @@ def load_year_data(year):
                 with open(target_file, "w") as file:
                     json.dump({"PEOPLE": PEOPLE, "WEIGHTS": WEIGHTS, "WATERING_HISTORY": watering_history}, file, indent=2)
                 return True
-            except:
+            except PermissionError:
+                print(f"Permission error writing to {target_file} - file may be open in another application")
+                return False
+            except Exception as e:
+                print(f"Error writing to {target_file}: {str(e)}")
                 return False
         else:
             # Don't create files for other years automatically
@@ -187,8 +191,15 @@ def reload_current_data():
 def save_to_file():
     global FILE_PATH
     # Don't change FILE_PATH here - use the current one
-    with open(FILE_PATH, "w") as file:
-        json.dump({"PEOPLE": PEOPLE, "WEIGHTS": WEIGHTS, "WATERING_HISTORY": watering_history}, file)
+    try:
+        with open(FILE_PATH, "w") as file:
+            json.dump({"PEOPLE": PEOPLE, "WEIGHTS": WEIGHTS, "WATERING_HISTORY": watering_history}, file, indent=2)
+    except PermissionError:
+        print(f"Permission error writing to {FILE_PATH} - file may be open in another application")
+        raise PermissionError(f"Cannot write to {FILE_PATH} - file may be open in another application")
+    except Exception as e:
+        print(f"Error writing to {FILE_PATH}: {str(e)}")
+        raise
 
 def update_weights():
     """Update weights based on watering history to maintain balance"""
@@ -442,18 +453,51 @@ def get_week_data(year, week):
 
 def update_week_data(year, week, person1, person2):
     """Update data for a specific week in a given year."""
+    global watering_history, FILE_PATH
+    
     target_file = f"people_{year}.json"
     if os.path.exists(target_file):
         with open(target_file, "r") as file:
             data = json.load(file)
     else:
-        data = {"watering_history": {}}
+        # Create a new file with the expected structure
+        data = {
+            "PEOPLE": PEOPLE.copy(),
+            "WEIGHTS": WEIGHTS.copy(),
+            "WATERING_HISTORY": {person: [] for person in PEOPLE}
+        }
 
-    # Update the week data
-    data["watering_history"][week] = [person1, person2]
+    # Get the watering history
+    watering_history_data = data.get("WATERING_HISTORY", {})
+    
+    # Create the week entry
+    week_entry = f"{year} KW {week}: {person1} and {person2}"
+    
+    # Remove any existing entries for this week
+    week_str = f"{year} KW {week}:"
+    for person in watering_history_data:
+        if isinstance(watering_history_data[person], list):
+            watering_history_data[person] = [entry for entry in watering_history_data[person] if not entry.startswith(week_str)]
+    
+    # Add the new entry to both people's history
+    if person1 not in watering_history_data:
+        watering_history_data[person1] = []
+    if person2 not in watering_history_data:
+        watering_history_data[person2] = []
+    
+    watering_history_data[person1].append(week_entry)
+    watering_history_data[person2].append(week_entry)
+    
+    # Update the data structure
+    data["WATERING_HISTORY"] = watering_history_data
 
     # Save back to the file
     with open(target_file, "w") as file:
         json.dump(data, file, indent=2)
+    
+    # If we're updating the current file, also update global variables
+    if target_file == FILE_PATH:
+        watering_history.clear()
+        watering_history.update(watering_history_data)
 
 
