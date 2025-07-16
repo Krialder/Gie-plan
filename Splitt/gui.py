@@ -560,11 +560,55 @@ def generate_and_show_schedule():
         new_schedule = generate_schedule(schedule_type)
         
         if new_schedule:
-            messagebox.showinfo("Success", f"Generated {schedule_type} schedule with {len(new_schedule)} weeks")
+            # Extract week information from the generated schedule
+            week_info = []
+            current_year = None
+            week_numbers = []
+            
+            for entry in new_schedule:
+                # Extract year and week number from entries like "2025 KW 48: Jan and Rosa"
+                import re
+                match = re.search(r'(\d{4}) KW (\d+)', entry)
+                if match:
+                    year = int(match.group(1))
+                    week_num = int(match.group(2))
+                    
+                    if current_year is None:
+                        current_year = year
+                        week_numbers = [week_num]
+                    elif year == current_year:
+                        week_numbers.append(week_num)
+                    else:
+                        # Year changed, add previous year's info
+                        if week_numbers:
+                            if len(week_numbers) == 1:
+                                week_info.append(f"{current_year}: KW {week_numbers[0]}")
+                            else:
+                                week_info.append(f"{current_year}: KW {min(week_numbers)}-{max(week_numbers)}")
+                        
+                        # Start new year
+                        current_year = year
+                        week_numbers = [week_num]
+            
+            # Add the last year's info
+            if current_year and week_numbers:
+                if len(week_numbers) == 1:
+                    week_info.append(f"{current_year}: KW {week_numbers[0]}")
+                else:
+                    week_info.append(f"{current_year}: KW {min(week_numbers)}-{max(week_numbers)}")
+            
+            # Create success message with week ranges
+            success_msg = f"Generated {schedule_type} schedule with {len(new_schedule)} weeks"
+            if week_info:
+                success_msg += f"\n\nWeeks generated:\n• " + "\n• ".join(week_info)
+            
+            # Show success message
+            messagebox.showinfo("Success", success_msg)
         else:
             messagebox.showinfo("Info", "Schedule generation completed")
         
-        # Update all displays
+        # Update all displays - including year selection in case new year files were created
+        refresh_years()
         update_schedule_display()
         update_people_list()
         update_status()

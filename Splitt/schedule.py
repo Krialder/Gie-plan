@@ -1,5 +1,7 @@
 import random
 import datetime
+import json
+import re
 import data
 from data import save_to_file, save_to_excel, reload_current_data, save_new_weeks_to_excel
 from tkinter import messagebox
@@ -125,7 +127,6 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
         schedule_year = current_year  # 2025
     else:
         # Extract year from filename like "people_2026.json"
-        import re
         match = re.search(r'people_(\d{4})\.json', data.FILE_PATH)
         schedule_year = int(match.group(1)) if match else current_year
 
@@ -144,7 +145,6 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
             if "KW" in entry:
                 try:
                     # Find KW pattern and extract number
-                    import re
                     match = re.search(r'KW (\d+)', entry)
                     if match:
                         week_numbers.append(int(match.group(1)))
@@ -169,20 +169,99 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
             weeks_to_generate = max_week - week + 1
         else:
             weeks_to_generate = 52  # Start new year
+        
+        # Generate schedule for the calculated number of weeks
+        for _ in range(weeks_to_generate):
+            # Handle year transition
+            if week > max_week:
+                # Save only the new weeks generated in the current year
+                if new_weeks_only:
+                    save_new_weeks_to_excel(new_weeks_only, data.PEOPLE, data.watering_history, target_year=schedule_year)
+                
+                # Transition to new year
+                schedule_year = schedule_year + 1  # Increment from current year
+                week = 1
+                
+                # Create new year data file and reset history
+                new_json_file = f"people_{schedule_year}.json"
+                new_history = {person: [] for person in data.PEOPLE}
+                
+                # Save new year file
+                with open(new_json_file, "w") as file:
+                    json.dump({"PEOPLE": data.PEOPLE, "WEIGHTS": data.WEIGHTS, "WATERING_HISTORY": new_history}, file)
+                
+                # Update global variables in data module
+                data.FILE_PATH = new_json_file
+                data.watering_history = new_history
+                
+                # Reset selection count for new year
+                selection_count = {person: 0 for person in data.PEOPLE}
+                
+                # Create new year Excel sheet
+                save_to_excel([], data.PEOPLE, data.watering_history, new_year=True, target_year=schedule_year)
+                new_weeks_only = []  # Reset new weeks for new year
+
+            # Use weighted arithmetic mean selection
+            selected = select_people_weighted_mean(selection_count)
+
+            for person in selected:
+                selection_count[person] += 1
+                data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
+
+            week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
+            new_weeks_only.append(week_entry)
+            full_schedule.append(week_entry)
+            week += 1
+    
     else:  # "Next 6 Weeks"
         weeks_to_generate = 6
-    
-    # Generate schedule for the calculated number of weeks
-    for _ in range(weeks_to_generate):
-        # Handle year transition
-        if week > max_week:
-            # Save only the new weeks generated in the current year
-            if new_weeks_only:
-                save_new_weeks_to_excel(new_weeks_only, data.PEOPLE, data.watering_history, target_year=schedule_year)
+        year_transition_occurred = False
+        
+        # Check if we'll cross a year boundary within the next 6 weeks
+        weeks_remaining_in_year = max_week - week + 1
+        
+        if weeks_remaining_in_year > 0 and weeks_remaining_in_year < weeks_to_generate:
+            year_transition_occurred = True
             
-            # Transition to new year
-            schedule_year = schedule_year + 1  # Increment from current year
+            # Step 1: COMPLETELY finish the current year first
+            year_transition_message = f"Year transition detected:\n\n"
+            year_transition_message += f"Step 1: Completing current year {schedule_year} with {weeks_remaining_in_year} weeks remaining...\n"
+            
+            current_year_weeks = []  # Track weeks for current year
+            current_year_start_week = week  # Remember the starting week for this year
+            
+            # Generate ALL remaining weeks for the current year
+            for _ in range(weeks_remaining_in_year):
+                # Use weighted arithmetic mean selection
+                selected = select_people_weighted_mean(selection_count)
+
+                for person in selected:
+                    selection_count[person] += 1
+                    data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
+
+                week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
+                current_year_weeks.append(week_entry)
+                full_schedule.append(week_entry)
+                week += 1
+            
+            # IMMEDIATELY save the completed year's schedule and data
+            if current_year_weeks:
+                save_new_weeks_to_excel(current_year_weeks, data.PEOPLE, data.watering_history, target_year=schedule_year)
+                save_to_file()  # Save current year's data to JSON immediately
+                current_year_end_week = week - 1
+                if current_year_start_week == current_year_end_week:
+                    year_transition_message += f"✓ Completed and saved 1 week for year {schedule_year} (KW {current_year_start_week})\n"
+                else:
+                    year_transition_message += f"✓ Completed and saved {len(current_year_weeks)} weeks for year {schedule_year} (KW {current_year_start_week}-{current_year_end_week})\n"
+            
+            year_transition_message += f"✓ Year {schedule_year} is now complete and saved.\n"
+            
+            # Step 2: NOW transition to new year
+            original_schedule_year = schedule_year
+            schedule_year = schedule_year + 1
             week = 1
+            
+            year_transition_message += f"\nStep 2: Now transitioning to new year {schedule_year}...\n"
             
             # Create new year data file and reset history
             new_json_file = f"people_{schedule_year}.json"
@@ -190,7 +269,6 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
             
             # Save new year file
             with open(new_json_file, "w") as file:
-                import json
                 json.dump({"PEOPLE": data.PEOPLE, "WEIGHTS": data.WEIGHTS, "WATERING_HISTORY": new_history}, file)
             
             # Update global variables in data module
@@ -202,24 +280,87 @@ def generate_schedule(schedule_type="Next 6 Weeks"):
             
             # Create new year Excel sheet
             save_to_excel([], data.PEOPLE, data.watering_history, new_year=True, target_year=schedule_year)
-            new_weeks_only = []  # Reset new weeks for new year
+            
+            # Step 3: Generate remaining weeks for the new year
+            remaining_weeks_needed = weeks_to_generate - weeks_remaining_in_year
+            year_transition_message += f"✓ Created new year file: people_{schedule_year}.json\n"
+            year_transition_message += f"\nStep 3: Generating {remaining_weeks_needed} weeks for new year {schedule_year}...\n"
+            
+            new_year_weeks = []  # Track weeks for new year
+            new_year_start_week = week  # Should be 1 for new year
+            
+            for _ in range(remaining_weeks_needed):
+                # Use weighted arithmetic mean selection
+                selected = select_people_weighted_mean(selection_count)
 
-        # Use weighted arithmetic mean selection
-        selected = select_people_weighted_mean(selection_count)
+                for person in selected:
+                    selection_count[person] += 1
+                    data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
 
-        for person in selected:
-            selection_count[person] += 1
-            data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
+                week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
+                new_year_weeks.append(week_entry)
+                full_schedule.append(week_entry)
+                week += 1
+            
+            # Save the new year's schedule
+            if new_year_weeks:
+                save_new_weeks_to_excel(new_year_weeks, data.PEOPLE, data.watering_history, target_year=schedule_year)
+                save_to_file()  # Save new year's data to JSON
+                new_year_end_week = week - 1
+                if new_year_start_week == new_year_end_week:
+                    year_transition_message += f"✓ Generated and saved 1 week for new year {schedule_year} (KW {new_year_start_week})\n"
+                else:
+                    year_transition_message += f"✓ Generated and saved {len(new_year_weeks)} weeks for new year {schedule_year} (KW {new_year_start_week}-{new_year_end_week})\n"
+            
+            # Combine all weeks for the final list
+            new_weeks_only = current_year_weeks + new_year_weeks
+            
+            year_transition_message += f"\nYear transition completed successfully!"
+            
+            # Create summary of all generated weeks
+            total_weeks_summary = f"Total weeks generated: {len(new_weeks_only)}\n"
+            if current_year_weeks:
+                current_year_start = current_year_start_week
+                current_year_end = current_year_start + len(current_year_weeks) - 1
+                if len(current_year_weeks) == 1:
+                    total_weeks_summary += f"• {original_schedule_year}: 1 week (KW {current_year_start})\n"
+                else:
+                    total_weeks_summary += f"• {original_schedule_year}: {len(current_year_weeks)} weeks (KW {current_year_start}-{current_year_end})\n"
+            
+            if new_year_weeks:
+                if len(new_year_weeks) == 1:
+                    total_weeks_summary += f"• {schedule_year}: 1 week (KW {new_year_start_week})\n"
+                else:
+                    total_weeks_summary += f"• {schedule_year}: {len(new_year_weeks)} weeks (KW {new_year_start_week}-{new_year_end_week})\n"
+            
+            year_transition_message += f"\n{total_weeks_summary}"
+            
+            # Show the transition summary
+            messagebox.showinfo("Year Transition Complete", year_transition_message)
+        
+        else:
+            # No year boundary crossing, generate normally
+            start_week_for_message = week
+            
+            for _ in range(weeks_to_generate):
+                # Use weighted arithmetic mean selection
+                selected = select_people_weighted_mean(selection_count)
 
-        week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
-        new_weeks_only.append(week_entry)
-        full_schedule.append(week_entry)
-        week += 1
+                for person in selected:
+                    selection_count[person] += 1
+                    data.watering_history[person].append(f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}")
 
-    save_to_file()
+                week_entry = f"{schedule_year} KW {week}: {selected[0]} and {selected[1]}"
+                new_weeks_only.append(week_entry)
+                full_schedule.append(week_entry)
+                week += 1
+
+    # Only save if we didn't already save during year transition
+    if not year_transition_occurred:
+        save_to_file()
     
-    # Save only the newly generated weeks to Excel
-    if new_weeks_only:
+    # Save only the newly generated weeks to Excel (only if not already saved during year transition)
+    if new_weeks_only and not year_transition_occurred:
         save_new_weeks_to_excel(new_weeks_only, data.PEOPLE, data.watering_history, target_year=schedule_year)
     
     return full_schedule
