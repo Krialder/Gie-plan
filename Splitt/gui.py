@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import data
-from data import save_to_file, save_to_excel, refresh_dependencies, add_new_person_with_context, remove_person_and_rebalance, reload_current_data, get_available_years, load_year_data, get_current_year, get_week_data, update_week_data
+from data import save_to_file, refresh_dependencies, add_new_person_with_context, remove_person_and_rebalance, reload_current_data, get_available_years, load_year_data, get_current_year, get_week_data, get_week_data_with_ersatz, update_week_data, update_week_data_with_ersatz, get_person_experience_level, set_person_experience_level, remove_person_experience_override, get_all_experience_levels, analyze_watering_imbalance, balance_watering_history, get_watering_history_report
 from schedule import show_schedule
+from tabelle_management import TabelleManager
 import datetime
 import re
 
@@ -25,6 +26,7 @@ if THEME_AVAILABLE:
     colors = RKIColors()
 else:
     # Fallback to basic styling
+    theme = None
     root.configure(bg='#f0f0f0')
     style = ttk.Style()
     style.theme_use('clam')
@@ -111,6 +113,10 @@ def on_year_changed(event=None):
             # Update all displays with the new year data
             update_all_displays()
             update_status()
+            # Update tabelle manager for new year
+            if 'tabelle_manager' in globals():
+                tabelle_manager.update_csv_file_path()
+                tabelle_manager.update_displays()
             messagebox.showinfo("Success", f"Switched to year {selected_year}")
         else:
             messagebox.showerror("Error", f"No data file found for year {selected_year}")
@@ -146,6 +152,9 @@ def update_status():
 notebook = widgets['notebook'](main_frame)
 notebook.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(10, 0))
 
+# Initialize Tabelle Manager
+tabelle_manager = TabelleManager(main_frame, widgets, colors, theme if THEME_AVAILABLE else None)
+
 # Tab 1: People Management
 people_frame = widgets['frame'](notebook, padding="15")
 notebook.add(people_frame, text="👥 People Management")
@@ -170,6 +179,53 @@ add_button.grid(row=0, column=0, padx=(0, 10))
 delete_button = widgets['button'](button_frame, text="➖ Remove Person", command=lambda: delete_person())
 delete_button.grid(row=0, column=1, padx=(10, 0))
 
+# Experience Level Management Section
+exp_frame = widgets['labelframe'](people_left, text="🎯 Experience Level Management", padding="10")
+exp_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(20, 0))
+
+widgets['label'](exp_frame, text="Person:").grid(row=0, column=0, sticky=tk.W, pady=5)
+exp_person_var = tk.StringVar()
+exp_person_combo = widgets['combobox'](exp_frame, textvariable=exp_person_var, state="readonly", width=18)
+exp_person_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+
+widgets['label'](exp_frame, text="Experience Level:").grid(row=1, column=0, sticky=tk.W, pady=5)
+exp_level_var = tk.StringVar()
+exp_level_combo = widgets['combobox'](exp_frame, textvariable=exp_level_var, 
+                                      values=["new", "beginner", "learning", "experienced"], 
+                                      state="readonly", width=18)
+exp_level_combo.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
+
+# Experience level buttons
+exp_button_frame = widgets['frame'](exp_frame)
+exp_button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+
+set_exp_button = widgets['primary_button'](exp_button_frame, text="🎯 Set Experience Level", command=lambda: set_experience_level())
+set_exp_button.grid(row=0, column=0, padx=(0, 10))
+
+remove_exp_button = widgets['button'](exp_button_frame, text="🔄 Reset to Automatic", command=lambda: remove_experience_override())
+remove_exp_button.grid(row=0, column=1, padx=(10, 0))
+
+# Configure grid weights for experience frame
+exp_frame.columnconfigure(1, weight=1)
+
+# Watering History Balancing Section
+balance_frame = widgets['labelframe'](people_left, text="⚖️ Watering History Balancing", padding="10")
+balance_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(20, 0))
+
+# Buttons for balancing
+balance_button_frame = widgets['frame'](balance_frame)
+balance_button_frame.grid(row=0, column=0, columnspan=2, pady=10)
+
+analyze_button = widgets['button'](balance_button_frame, text="📊 Analyze Imbalance", command=lambda: show_watering_analysis())
+analyze_button.grid(row=0, column=0, padx=(0, 10))
+
+balance_button = widgets['primary_button'](balance_button_frame, text="⚖️ Balance History", command=lambda: balance_watering_counts())
+balance_button.grid(row=0, column=1, padx=(10, 0))
+
+# Configure grid weights for balance frame
+balance_frame.columnconfigure(0, weight=1)
+balance_frame.columnconfigure(1, weight=1)
+
 # Right side - People list with details
 people_right = widgets['frame'](people_frame)
 people_right.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -177,13 +233,17 @@ people_right.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S))
 widgets['heading_label'](people_right, text="📊 Current People & Statistics").grid(row=0, column=0, pady=(0, 15))
 
 # Create treeview for people list
-people_tree = widgets['treeview'](people_right, columns=('Name', 'Watering Count', 'Weight'), show='headings', height=12)
+people_tree = widgets['treeview'](people_right, columns=('Name', 'Watering Count', 'Experience Level', 'Weight', 'Extra Weight'), show='headings', height=12)
 people_tree.heading('Name', text='Name')
 people_tree.heading('Watering Count', text='Times Watered')
-people_tree.heading('Weight', text='Current Weight')
-people_tree.column('Name', width=150)
-people_tree.column('Watering Count', width=100)
-people_tree.column('Weight', width=100)
+people_tree.heading('Experience Level', text='Experience Level')
+people_tree.heading('Weight', text='Weight')
+people_tree.heading('Extra Weight', text='Extra Weight')
+people_tree.column('Name', width=120)
+people_tree.column('Watering Count', width=80)
+people_tree.column('Experience Level', width=100)
+people_tree.column('Weight', width=60)
+people_tree.column('Extra Weight', width=70)
 people_tree.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 # Scrollbar for treeview
@@ -248,6 +308,120 @@ def delete_person():
         else:
             messagebox.showerror("Error", "Failed to remove person.")
 
+def set_experience_level():
+    """Set manual experience level for a person"""
+    person = exp_person_var.get().strip()
+    level = exp_level_var.get().strip()
+    
+    if not person:
+        messagebox.showerror("Error", "Please select a person.")
+        return
+    
+    if not level:
+        messagebox.showerror("Error", "Please select an experience level.")
+        return
+    
+    if set_person_experience_level(person, level):
+        update_people_list()
+        update_status()
+        messagebox.showinfo("Success", f"Set {person}'s experience level to '{level}'.")
+    else:
+        messagebox.showerror("Error", "Failed to set experience level.")
+
+def remove_experience_override():
+    """Remove manual experience level override for a person"""
+    person = exp_person_var.get().strip()
+    
+    if not person:
+        messagebox.showerror("Error", "Please select a person.")
+        return
+    
+    if remove_person_experience_override(person):
+        update_people_list()
+        update_status()
+        messagebox.showinfo("Success", f"Reset {person}'s experience level to automatic calculation.")
+    else:
+        messagebox.showinfo("Info", f"No manual override found for {person}.")
+
+def show_watering_analysis():
+    """Show detailed analysis of watering history imbalance"""
+    try:
+        report = get_watering_history_report()
+        
+        # Create a new window to display the analysis
+        analysis_window = tk.Toplevel(root)
+        analysis_window.title("Watering History Analysis")
+        analysis_window.geometry("600x500")
+        
+        # Create text widget with scrollbar
+        text_frame = widgets['frame'](analysis_window)
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, font=('Consolas', 10))
+        scrollbar = widgets['scrollbar'](text_frame, orient=tk.VERTICAL, command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Insert the report
+        text_widget.insert(tk.END, report)
+        text_widget.configure(state=tk.DISABLED)
+        
+        # Add buttons
+        button_frame = widgets['frame'](analysis_window)
+        button_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        balance_btn = widgets['primary_button'](button_frame, text="⚖️ Balance Now", 
+                                               command=lambda: [balance_watering_counts(), analysis_window.destroy()])
+        balance_btn.pack(side=tk.RIGHT, padx=(10, 0))
+        
+        close_btn = widgets['button'](button_frame, text="Close", command=analysis_window.destroy)
+        close_btn.pack(side=tk.RIGHT)
+        
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to generate analysis: {str(e)}")
+
+def balance_watering_counts():
+    """Balance the watering counts across all people"""
+    try:
+        # First check if balancing is needed
+        analysis = analyze_watering_imbalance()
+        if not analysis:
+            messagebox.showerror("Error", "No watering data available to balance.")
+            return
+        
+        if analysis['difference'] <= 2:
+            messagebox.showinfo("Info", 
+                              f"Watering counts are already balanced.\n"
+                              f"Current range: {analysis['min_count']} - {analysis['max_count']} (difference: {analysis['difference']})")
+            return
+        
+        # Show confirmation dialog with current imbalance
+        confirm_msg = (f"Current watering distribution:\n"
+                      f"Range: {analysis['min_count']} - {analysis['max_count']} (difference: {analysis['difference']})\n"
+                      f"Average: {analysis['average']:.1f}\n\n"
+                      f"This will redistribute watering entries to balance the counts.\n"
+                      f"Do you want to proceed?")
+        
+        if not messagebox.askyesno("Confirm Balancing", confirm_msg):
+            return
+        
+        # Perform the balancing
+        success, message = balance_watering_history()
+        
+        if success:
+            # Update all displays
+            update_people_list()
+            update_schedule_display()
+            update_status()
+            messagebox.showinfo("Success", f"Watering history balanced successfully!\n\n{message}")
+        else:
+            messagebox.showinfo("Info", message)
+            
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to balance watering history: {str(e)}")
+
 def update_people_list():
     # Clear existing items
     for item in people_tree.get_children():
@@ -261,11 +435,22 @@ def update_people_list():
         if person not in data.PEOPLE:
             del data.watering_history[person]
     
+    # Update weights to ensure they reflect current watering counts
+    data.update_weights()
+    
     # Add people to treeview
     for i, person in enumerate(data.PEOPLE):
         watering_count = len(data.watering_history.get(person, []))
+        experience_level = get_person_experience_level(person)
+        # Add indicator for manual override
+        if person in data.experience_overrides:
+            experience_level += " (Manual)"
         weight = data.WEIGHTS[i] if i < len(data.WEIGHTS) else 1
-        people_tree.insert('', 'end', values=(person, watering_count, weight))
+        extra_weight = data.EXTRA_WEIGHTS[i] if i < len(data.EXTRA_WEIGHTS) else 1
+        people_tree.insert('', 'end', values=(person, watering_count, experience_level, weight, extra_weight))
+    
+    # Update person combos when people list changes
+    update_person_combos()
 
 # Tab 2: Schedule Generation
 schedule_frame = widgets['frame'](notebook, padding="15")
@@ -303,15 +488,19 @@ schedule_container = widgets['frame'](schedule_display_frame)
 schedule_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 # Treeview for schedule display
-schedule_tree = widgets['treeview'](schedule_container, columns=('Week', 'Date Range', 'Person 1', 'Person 2'), show='headings', height=10)
+schedule_tree = widgets['treeview'](schedule_container, columns=('Week', 'Date Range', 'Person 1', 'Person 2', 'ErsatzPerson 1', 'ErsatzPerson 2'), show='headings', height=10)
 schedule_tree.heading('Week', text='Week')
 schedule_tree.heading('Date Range', text='Date Range')
 schedule_tree.heading('Person 1', text='Person 1')
 schedule_tree.heading('Person 2', text='Person 2')
+schedule_tree.heading('ErsatzPerson 1', text='ErsatzPerson 1')
+schedule_tree.heading('ErsatzPerson 2', text='ErsatzPerson 2')
 schedule_tree.column('Week', width=60)
 schedule_tree.column('Date Range', width=120)
-schedule_tree.column('Person 1', width=120)
-schedule_tree.column('Person 2', width=120)
+schedule_tree.column('Person 1', width=100)
+schedule_tree.column('Person 2', width=100)
+schedule_tree.column('ErsatzPerson 1', width=100)
+schedule_tree.column('ErsatzPerson 2', width=100)
 schedule_tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
 
 # Configure alternating row colors with theme colors
@@ -375,14 +564,14 @@ def update_schedule_display():
             current_year = int(match.group(1))
     
     # Collect all schedule entries from watering history
-    week_assignments = {}  # week_number: [person1, person2]
+    week_assignments = {}  # week_number: {'main': [person1, person2], 'ersatz': [ersatz1, ersatz2]}
     
     for person in data.PEOPLE:
         if person in data.watering_history:
             for entry in data.watering_history[person]:
                 if "KW" in entry:
                     try:
-                        # Parse new KW format: "2025 KW 15: person1 and person2"
+                        # Parse new KW format: "2025 KW 15: person1 and person2 (ErsatzPersons: ersatz1 and ersatz2)"
                         parts = entry.split(":")
                         if len(parts) >= 2:
                             week_part = parts[0].strip()
@@ -397,10 +586,24 @@ def update_schedule_display():
                                     # Only show entries for the current year being viewed
                                     if year_num == current_year:
                                         if week_num not in week_assignments:
-                                            week_assignments[week_num] = []
+                                            week_assignments[week_num] = {'main': [], 'ersatz': []}
                                         
-                                        if person not in week_assignments[week_num]:
-                                            week_assignments[week_num].append(person)
+                                        # Parse main persons and ersatz persons
+                                        if person not in week_assignments[week_num]['main']:
+                                            week_assignments[week_num]['main'].append(person)
+                                        
+                                        # Try to extract ErsatzPersons from the entry
+                                        if "ErsatzPersons:" in entry:
+                                            ersatz_part = entry.split("ErsatzPersons:")[1].strip()
+                                            if " and " in ersatz_part:
+                                                ersatz_persons = ersatz_part.rstrip(")").split(" and ")
+                                                if len(ersatz_persons) >= 2:
+                                                    ersatz1 = ersatz_persons[0].strip()
+                                                    ersatz2 = ersatz_persons[1].strip()
+                                                    if ersatz1 not in week_assignments[week_num]['ersatz']:
+                                                        week_assignments[week_num]['ersatz'].append(ersatz1)
+                                                    if ersatz2 not in week_assignments[week_num]['ersatz']:
+                                                        week_assignments[week_num]['ersatz'].append(ersatz2)
                     except (ValueError, IndexError):
                         continue
                 elif entry.startswith("Week "):  # Support old format for backward compatibility
@@ -409,10 +612,10 @@ def update_schedule_display():
                         week_num = int(week_part.split()[1])
                         
                         if week_num not in week_assignments:
-                            week_assignments[week_num] = []
+                            week_assignments[week_num] = {'main': [], 'ersatz': []}
                         
-                        if person not in week_assignments[week_num]:
-                            week_assignments[week_num].append(person)
+                        if person not in week_assignments[week_num]['main']:
+                            week_assignments[week_num]['main'].append(person)
                     except (ValueError, IndexError):
                         continue
     
@@ -433,9 +636,14 @@ def update_schedule_display():
             date_range = "TBD"
         
         # Get people assigned to this week
-        people = week_assignments[week_num]
-        person1 = people[0] if len(people) > 0 else ""
-        person2 = people[1] if len(people) > 1 else ""
+        assignment = week_assignments[week_num]
+        main_people = assignment.get('main', [])
+        ersatz_people = assignment.get('ersatz', [])
+        
+        person1 = main_people[0] if len(main_people) > 0 else ""
+        person2 = main_people[1] if len(main_people) > 1 else ""
+        ersatz_person1 = ersatz_people[0] if len(ersatz_people) > 0 else ""
+        ersatz_person2 = ersatz_people[1] if len(ersatz_people) > 1 else ""
         
         # Determine row styling - only highlight current/next week if viewing the actual current year
         if current_year == actual_current_year:
@@ -450,7 +658,7 @@ def update_schedule_display():
             tag = 'oddrow' if i % 2 == 0 else 'evenrow'
         
         # Insert into treeview
-        schedule_tree.insert('', 'end', values=(f"KW {week_num}", date_range, person1, person2), tags=(tag,))
+        schedule_tree.insert('', 'end', values=(f"KW {week_num}", date_range, person1, person2, ersatz_person1, ersatz_person2), tags=(tag,))
     
     # Draw canvas visualization
     draw_schedule_visualization(sorted_weeks, week_assignments, current_week, current_year, actual_current_year)
@@ -521,9 +729,11 @@ def draw_schedule_visualization(sorted_weeks, week_assignments, current_week, cu
                                   font=('Segoe UI', 10, 'bold'), anchor='w', fill=canvas_colors['text'])
         
         # Get people for this week
-        people = week_assignments.get(week_num, [])
-        if len(people) >= 2:
-            person1, person2 = people[0], people[1]
+        assignment = week_assignments.get(week_num, {'main': [], 'ersatz': []})
+        main_people = assignment.get('main', [])
+        
+        if len(main_people) >= 2:
+            person1, person2 = main_people[0], main_people[1]
             
             # Draw person 1 section
             person1_color = person_colors.get(person1, colors.LIGHT_GRAY)
@@ -623,6 +833,9 @@ def generate_and_show_schedule():
         update_schedule_display()
         update_people_list()
         update_status()
+        # Update tabelle management displays
+        if 'tabelle_manager' in globals():
+            tabelle_manager.update_displays()
         
     except PermissionError:
         messagebox.showerror("File Permission Error", 
@@ -634,6 +847,9 @@ def generate_and_show_schedule():
 # Tab 3: Manual Schedule Management
 manual_frame = widgets['frame'](notebook, padding="15")
 notebook.add(manual_frame, text="✏️ Manual Management")
+
+# Tab 4: Tabelle Management
+tabelle_manager.create_tabelle_tab(notebook)
 
 # Manual date/week management
 manual_mgmt_frame = widgets['labelframe'](manual_frame, text="✏️ Add/Remove Specific Dates or Weeks", padding="15")
@@ -661,8 +877,19 @@ person2_var = tk.StringVar()
 person2_combo = widgets['combobox'](manual_mgmt_frame, textvariable=person2_var, width=18)
 person2_combo.grid(row=1, column=3, sticky=(tk.W, tk.E), pady=8, padx=(10, 0))
 
+# ErsatzPerson (substitute person) fields
+widgets['label'](manual_mgmt_frame, text="ErsatzPerson 1:").grid(row=2, column=0, sticky=tk.W, pady=8)
+ersatz_person1_var = tk.StringVar()
+ersatz_person1_combo = widgets['combobox'](manual_mgmt_frame, textvariable=ersatz_person1_var, width=18)
+ersatz_person1_combo.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=8, padx=(10, 0))
+
+widgets['label'](manual_mgmt_frame, text="ErsatzPerson 2:").grid(row=2, column=2, sticky=tk.W, pady=8, padx=(20, 0))
+ersatz_person2_var = tk.StringVar()
+ersatz_person2_combo = widgets['combobox'](manual_mgmt_frame, textvariable=ersatz_person2_var, width=18)
+ersatz_person2_combo.grid(row=2, column=3, sticky=(tk.W, tk.E), pady=8, padx=(10, 0))
+
 manual_button_frame = widgets['frame'](manual_mgmt_frame)
-manual_button_frame.grid(row=2, column=0, columnspan=4, pady=15)
+manual_button_frame.grid(row=3, column=0, columnspan=4, pady=15)
 
 add_date_button = widgets['success_button'](manual_button_frame, text="➕ Add Date/Week", command=lambda: add_date_or_week())
 add_date_button.grid(row=0, column=0, padx=(0, 10))
@@ -676,8 +903,26 @@ manual_mgmt_frame.columnconfigure(3, weight=1)
 
 def update_person_combos():
     """Update the combobox options with current people"""
+    print(f"Updating combos with people: {data.PEOPLE}")
     person1_combo['values'] = data.PEOPLE
     person2_combo['values'] = data.PEOPLE
+    ersatz_person1_combo['values'] = data.PEOPLE
+    ersatz_person2_combo['values'] = data.PEOPLE
+    
+    # Update experience level management combo
+    exp_person_combo['values'] = data.PEOPLE
+    if data.PEOPLE and not exp_person_var.get():
+        exp_person_var.set(data.PEOPLE[0])
+    
+    # Clear any existing selections that might be invalid
+    if person1_var.get() not in data.PEOPLE:
+        person1_var.set("")
+    if person2_var.get() not in data.PEOPLE:
+        person2_var.set("")
+    if ersatz_person1_var.get() not in data.PEOPLE:
+        ersatz_person1_var.set("")
+    if ersatz_person2_var.get() not in data.PEOPLE:
+        ersatz_person2_var.set("")
     
     # Update manual year combo with available years
     available_years = data.get_available_years()
@@ -693,24 +938,59 @@ def add_date_or_week():
 
     person1 = person1_var.get().strip()
     person2 = person2_var.get().strip()
+    ersatz_person1 = ersatz_person1_var.get().strip()
+    ersatz_person2 = ersatz_person2_var.get().strip()
+
+    # Clean up person names in case they contain extra text
+    # Remove any parentheses and content within them
+    import re
+    person1 = re.sub(r'\s*\([^)]*\).*', '', person1).strip()
+    person2 = re.sub(r'\s*\([^)]*\).*', '', person2).strip()
+    ersatz_person1 = re.sub(r'\s*\([^)]*\).*', '', ersatz_person1).strip()
+    ersatz_person2 = re.sub(r'\s*\([^)]*\).*', '', ersatz_person2).strip()
+
+    print(f"Cleaned names - Person1: '{person1}', Person2: '{person2}', Ersatz1: '{ersatz_person1}', Ersatz2: '{ersatz_person2}'")
+    print(f"Available people: {data.PEOPLE}")
 
     if not week_selection or not year_selection or not person1 or not person2:
-        messagebox.showerror("Error", "Please fill in all fields.")
+        messagebox.showerror("Error", "Please fill in all main person fields.")
         return
 
     if person1 == person2:
-        messagebox.showerror("Error", "Please select two different people.")
+        messagebox.showerror("Error", "Please select two different main people.")
         return
 
     if person1 not in data.PEOPLE or person2 not in data.PEOPLE:
-        messagebox.showerror("Error", "Please select valid people from the list.")
+        messagebox.showerror("Error", "Please select valid main people from the list.")
+        return
+
+    # Check ersatz persons if they are filled
+    if ersatz_person1 and ersatz_person1 not in data.PEOPLE:
+        messagebox.showerror("Error", "Please select valid ErsatzPerson 1 from the list.")
+        return
+    
+    if ersatz_person2 and ersatz_person2 not in data.PEOPLE:
+        messagebox.showerror("Error", "Please select valid ErsatzPerson 2 from the list.")
+        return
+
+    if ersatz_person1 and ersatz_person2 and ersatz_person1 == ersatz_person2:
+        messagebox.showerror("Error", "Please select two different ErsatzPersons.")
+        return
+
+    # Ensure ErsatzPersons are not the same as main persons
+    if ersatz_person1 and (ersatz_person1 == person1 or ersatz_person1 == person2):
+        messagebox.showerror("Error", "ErsatzPerson 1 cannot be the same as a main person.")
+        return
+        
+    if ersatz_person2 and (ersatz_person2 == person1 or ersatz_person2 == person2):
+        messagebox.showerror("Error", "ErsatzPerson 2 cannot be the same as a main person.")
         return
 
     # Extract week number from KW format (e.g., "KW 15" -> "15")
     week_number = week_selection.replace("KW ", "").strip()
 
     # Check if week already has existing data
-    existing_data = get_week_data(year_selection, week_number)
+    existing_data = get_week_data_with_ersatz(year_selection, week_number)
     print(f"Existing Data for Week {week_number}: {existing_data}")
     
     # If there's existing data, show confirmation dialog
@@ -723,25 +1003,40 @@ def add_date_or_week():
         if not messagebox.askyesno("Confirm Change", confirmation_message):
             return
 
-    # Update week data
-    update_week_data(year_selection, week_number, person1, person2)
+    # Update week data with ErsatzPersons
+    update_week_data_with_ersatz(year_selection, week_number, person1, person2, ersatz_person1, ersatz_person2)
 
     # Reload the current data to reflect the changes in the global variables
     reload_current_data()
 
-    # Save to Excel
-    save_to_excel([f"{year_selection} {week_selection}: {person1} and {person2}"], data.PEOPLE, data.watering_history, new_year=False, target_year=int(year_selection))
+    # Excel functionality removed - using JSON-only data storage
 
     # Clear entries
     week_var.set("")
     manual_year_var.set("")
     person1_var.set("")
     person2_var.set("")
+    ersatz_person1_var.set("")
+    ersatz_person2_var.set("")
 
     update_people_list()
     update_schedule_display()
     update_status()
-    messagebox.showinfo("Success", f"Entry for {year_selection} {week_selection} added successfully.")
+    # Update tabelle management displays
+    if 'tabelle_manager' in globals():
+        tabelle_manager.update_displays()
+    
+    # Create success message
+    success_message = f"Entry for {year_selection} {week_selection} added successfully."
+    if ersatz_person1 or ersatz_person2:
+        ersatz_info = []
+        if ersatz_person1:
+            ersatz_info.append(f"ErsatzPerson 1: {ersatz_person1}")
+        if ersatz_person2:
+            ersatz_info.append(f"ErsatzPerson 2: {ersatz_person2}")
+        success_message += f"\nErsatzPersons: {', '.join(ersatz_info)}"
+    
+    messagebox.showinfo("Success", success_message)
 
 def delete_date_or_week():
     week_selection = week_var.get().strip()
@@ -774,14 +1069,16 @@ def delete_date_or_week():
         # Save changes to JSON file
         save_to_file()
 
-        # Save updated history to Excel
-        save_to_excel([], data.PEOPLE, data.watering_history, new_year=False)
+        # Excel functionality removed - using JSON-only data storage
         
         week_var.set("")
         manual_year_var.set("")
         update_people_list()
         update_schedule_display()
         update_status()
+        # Update tabelle management displays
+        if 'tabelle_manager' in globals():
+            tabelle_manager.update_displays()
         messagebox.showinfo("Success", f"Entry for {year_selection} {week_selection} deleted successfully.")
 
 def get_all_weeks_assignments():
@@ -808,6 +1105,9 @@ def update_all_displays():
     update_person_combos()
     update_schedule_display()
     update_status()
+    # Update tabelle management displays
+    if 'tabelle_manager' in globals():
+        tabelle_manager.update_displays()
 
 def initialize_gui():
     update_all_displays()
@@ -875,18 +1175,28 @@ def autofill_persons_for_week(*args):
     year_selection = manual_year_var.get().strip()
     if week_selection and year_selection:
         week_number = week_selection.replace("KW ", "").strip()
-        existing_data = get_week_data(year_selection, week_number)
-        if existing_data and (existing_data[0] or existing_data[1]):
+        existing_data = get_week_data_with_ersatz(year_selection, week_number)
+        
+        # existing_data format: [person1, person2, ersatz_person1, ersatz_person2]
+        if existing_data and len(existing_data) >= 4:
             person1_var.set(existing_data[0] or "")
             person2_var.set(existing_data[1] or "")
+            ersatz_person1_var.set(existing_data[2] or "")
+            ersatz_person2_var.set(existing_data[3] or "")
         else:
+            # If no data found, clear all fields
             person1_var.set("")
             person2_var.set("")
+            ersatz_person1_var.set("")
+            ersatz_person2_var.set("")
 
 # Bind autofill to week and year changes
 week_var.trace_add("write", autofill_persons_for_week)
 manual_year_var.trace_add("write", autofill_persons_for_week)
 week_combo.bind('<<ComboboxSelected>>', lambda e: autofill_persons_for_week())
 manual_year_combo.bind('<<ComboboxSelected>>', lambda e: autofill_persons_for_week())
+
+# Initialize combo boxes with current data
+update_person_combos()
 
 root.mainloop()

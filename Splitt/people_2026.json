@@ -1,0 +1,53 @@
+{
+  "PEOPLE": [
+    "Jan",
+    "Jeff",
+    "Antonia",
+    "Melissa",
+    "Rosa",
+    "Alexander"
+  ],
+  "WEIGHTS": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+  ],
+  "EXTRA_WEIGHTS": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+  ],
+  "WATERING_HISTORY": {
+    "Jan": [
+      "2026 KW 2: Jan and Jeff (ErsatzPersons: Rosa and Antonia)",
+      "2026 KW 5: Jan and Jeff (ErsatzPersons: Rosa and Melissa)"
+    ],
+    "Jeff": [
+      "2026 KW 2: Jan and Jeff (ErsatzPersons: Rosa and Antonia)",
+      "2026 KW 5: Jan and Jeff (ErsatzPersons: Rosa and Melissa)"
+    ],
+    "Antonia": [
+      "2026 KW 3: Antonia and Melissa (ErsatzPersons: Jeff and Jan)",
+      "2026 KW 6: Antonia and Melissa (ErsatzPersons: Rosa and Alexander)"
+    ],
+    "Melissa": [
+      "2026 KW 3: Antonia and Melissa (ErsatzPersons: Jeff and Jan)",
+      "2026 KW 6: Antonia and Melissa (ErsatzPersons: Rosa and Alexander)"
+    ],
+    "Rosa": [
+      "2026 KW 1: Rosa and Alexander (ErsatzPersons: Jeff and Jan)",
+      "2026 KW 4: Rosa and Alexander (ErsatzPersons: Jan and Jeff)"
+    ],
+    "Alexander": [
+      "2026 KW 1: Rosa and Alexander (ErsatzPersons: Jeff and Jan)",
+      "2026 KW 4: Rosa and Alexander (ErsatzPersons: Jan and Jeff)"
+    ]
+  },
+  "EXPERIENCE_OVERRIDES": {}
+}
