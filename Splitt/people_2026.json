@@ -1,0 +1,175 @@
+{
+  "PEOPLE": [
+    "Eins",
+    "Zwei",
+    "Drei",
+    "Vier",
+    "F\u00fcnf",
+    "Sechs",
+    "Sieben",
+    "Acht",
+    "Neun",
+    "Zehn",
+    "Elf",
+    "Zw\u00f6lf"
+  ],
+  "WEIGHTS": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    7,
+    8,
+    8,
+    8,
+    8
+  ],
+  "EXTRA_WEIGHTS": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    4,
+    4,
+    4,
+    4
+  ],
+  "WATERING_HISTORY": {
+    "Eins": [
+      "2026 KW 2: Eins and Zwei (ErsatzPersons: Vier and Drei)",
+      "2026 KW 7: Eins and Zwei (ErsatzPersons: F\u00fcnf and Sechs)",
+      "2026 KW 13: Eins and Zwei (ErsatzPersons: Sechs and Drei)",
+      "2026 KW 19: Eins and Zwei (ErsatzPersons: Drei and F\u00fcnf)",
+      "2026 KW 25: Eins and Zwei (ErsatzPersons: F\u00fcnf and Vier)",
+      "2026 KW 31: Eins and Zwei (ErsatzPersons: Drei and Vier)",
+      "2026 KW 37: Eins and Zwei (ErsatzPersons: Vier and Drei)",
+      "2026 KW 43: Eins and Zwei (ErsatzPersons: Vier and Drei)",
+      "2026 KW 49: Eins and Zwei (ErsatzPersons: Drei and Sechs)"
+    ],
+    "Zwei": [
+      "2026 KW 2: Eins and Zwei (ErsatzPersons: Vier and Drei)",
+      "2026 KW 7: Eins and Zwei (ErsatzPersons: F\u00fcnf and Sechs)",
+      "2026 KW 13: Eins and Zwei (ErsatzPersons: Sechs and Drei)",
+      "2026 KW 19: Eins and Zwei (ErsatzPersons: Drei and F\u00fcnf)",
+      "2026 KW 25: Eins and Zwei (ErsatzPersons: F\u00fcnf and Vier)",
+      "2026 KW 31: Eins and Zwei (ErsatzPersons: Drei and Vier)",
+      "2026 KW 37: Eins and Zwei (ErsatzPersons: Vier and Drei)",
+      "2026 KW 43: Eins and Zwei (ErsatzPersons: Vier and Drei)",
+      "2026 KW 49: Eins and Zwei (ErsatzPersons: Drei and Sechs)"
+    ],
+    "Drei": [
+      "2026 KW 3: Drei and Vier (ErsatzPersons: Sieben and Sechs)",
+      "2026 KW 8: Drei and Vier (ErsatzPersons: Sieben and Sechs)",
+      "2026 KW 14: Drei and Vier (ErsatzPersons: F\u00fcnf and Sieben)",
+      "2026 KW 20: Drei and Vier (ErsatzPersons: F\u00fcnf and Sieben)",
+      "2026 KW 26: Drei and Vier (ErsatzPersons: Acht and F\u00fcnf)",
+      "2026 KW 32: Drei and Vier (ErsatzPersons: F\u00fcnf and Sieben)",
+      "2026 KW 38: Drei and Vier (ErsatzPersons: Sechs and Sieben)",
+      "2026 KW 44: Drei and Vier (ErsatzPersons: Sechs and F\u00fcnf)",
+      "2026 KW 50: Drei and Vier (ErsatzPersons: Sechs and F\u00fcnf)"
+    ],
+    "Vier": [
+      "2026 KW 3: Drei and Vier (ErsatzPersons: Sieben and Sechs)",
+      "2026 KW 8: Drei and Vier (ErsatzPersons: Sieben and Sechs)",
+      "2026 KW 14: Drei and Vier (ErsatzPersons: F\u00fcnf and Sieben)",
+      "2026 KW 20: Drei and Vier (ErsatzPersons: F\u00fcnf and Sieben)",
+      "2026 KW 26: Drei and Vier (ErsatzPersons: Acht and F\u00fcnf)",
+      "2026 KW 32: Drei and Vier (ErsatzPersons: F\u00fcnf and Sieben)",
+      "2026 KW 38: Drei and Vier (ErsatzPersons: Sechs and Sieben)",
+      "2026 KW 44: Drei and Vier (ErsatzPersons: Sechs and F\u00fcnf)",
+      "2026 KW 50: Drei and Vier (ErsatzPersons: Sechs and F\u00fcnf)"
+    ],
+    "F\u00fcnf": [
+      "2026 KW 4: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Acht)",
+      "2026 KW 9: F\u00fcnf and Sechs (ErsatzPersons: Zehn and Neun)",
+      "2026 KW 15: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 21: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 27: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 33: F\u00fcnf and Sechs (ErsatzPersons: Zehn and Acht)",
+      "2026 KW 39: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 45: F\u00fcnf and Sechs (ErsatzPersons: Acht and Neun)",
+      "2026 KW 51: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)"
+    ],
+    "Sechs": [
+      "2026 KW 4: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Acht)",
+      "2026 KW 9: F\u00fcnf and Sechs (ErsatzPersons: Zehn and Neun)",
+      "2026 KW 15: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 21: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 27: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 33: F\u00fcnf and Sechs (ErsatzPersons: Zehn and Acht)",
+      "2026 KW 39: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)",
+      "2026 KW 45: F\u00fcnf and Sechs (ErsatzPersons: Acht and Neun)",
+      "2026 KW 51: F\u00fcnf and Sechs (ErsatzPersons: Sieben and Neun)"
+    ],
+    "Sieben": [
+      "2026 KW 5: Sieben and Acht (ErsatzPersons: Neun and Zehn)",
+      "2026 KW 10: Sieben and Acht (ErsatzPersons: Elf and Zw\u00f6lf)",
+      "2026 KW 16: Sieben and Acht (ErsatzPersons: Elf and Neun)",
+      "2026 KW 22: Sieben and Acht (ErsatzPersons: Zehn and Elf)",
+      "2026 KW 28: Sieben and Acht (ErsatzPersons: Neun and Elf)",
+      "2026 KW 34: Sieben and Acht (ErsatzPersons: Elf and Zw\u00f6lf)",
+      "2026 KW 40: Sieben and Acht (ErsatzPersons: Elf and Zw\u00f6lf)",
+      "2026 KW 46: Sieben and Acht (ErsatzPersons: Zehn and Elf)",
+      "2026 KW 52: Sieben and Acht (ErsatzPersons: Neun and Zw\u00f6lf)"
+    ],
+    "Acht": [
+      "2026 KW 5: Sieben and Acht (ErsatzPersons: Neun and Zehn)",
+      "2026 KW 10: Sieben and Acht (ErsatzPersons: Elf and Zw\u00f6lf)",
+      "2026 KW 16: Sieben and Acht (ErsatzPersons: Elf and Neun)",
+      "2026 KW 22: Sieben and Acht (ErsatzPersons: Zehn and Elf)",
+      "2026 KW 28: Sieben and Acht (ErsatzPersons: Neun and Elf)",
+      "2026 KW 34: Sieben and Acht (ErsatzPersons: Elf and Zw\u00f6lf)",
+      "2026 KW 40: Sieben and Acht (ErsatzPersons: Elf and Zw\u00f6lf)",
+      "2026 KW 46: Sieben and Acht (ErsatzPersons: Zehn and Elf)",
+      "2026 KW 52: Sieben and Acht (ErsatzPersons: Neun and Zw\u00f6lf)"
+    ],
+    "Neun": [
+      "2026 KW 6: Neun and Zehn (ErsatzPersons: Vier and Drei)",
+      "2026 KW 11: Neun and Zehn (ErsatzPersons: Eins and Zw\u00f6lf)",
+      "2026 KW 17: Neun and Zehn (ErsatzPersons: Zw\u00f6lf and Zwei)",
+      "2026 KW 23: Neun and Zehn (ErsatzPersons: Zwei and Elf)",
+      "2026 KW 29: Neun and Zehn (ErsatzPersons: Zw\u00f6lf and Elf)",
+      "2026 KW 35: Neun and Zehn (ErsatzPersons: Elf and Eins)",
+      "2026 KW 41: Neun and Zehn (ErsatzPersons: Elf and Zwei)",
+      "2026 KW 47: Neun and Zehn (ErsatzPersons: Zw\u00f6lf and Eins)"
+    ],
+    "Zehn": [
+      "2026 KW 6: Neun and Zehn (ErsatzPersons: Vier and Drei)",
+      "2026 KW 11: Neun and Zehn (ErsatzPersons: Eins and Zw\u00f6lf)",
+      "2026 KW 17: Neun and Zehn (ErsatzPersons: Zw\u00f6lf and Zwei)",
+      "2026 KW 23: Neun and Zehn (ErsatzPersons: Zwei and Elf)",
+      "2026 KW 29: Neun and Zehn (ErsatzPersons: Zw\u00f6lf and Elf)",
+      "2026 KW 35: Neun and Zehn (ErsatzPersons: Elf and Eins)",
+      "2026 KW 41: Neun and Zehn (ErsatzPersons: Elf and Zwei)",
+      "2026 KW 47: Neun and Zehn (ErsatzPersons: Zw\u00f6lf and Eins)"
+    ],
+    "Elf": [
+      "2026 KW 1: Elf and Zw\u00f6lf (ErsatzPersons: Zwei and Eins)",
+      "2026 KW 12: Elf and Zw\u00f6lf (ErsatzPersons: Vier and Zwei)",
+      "2026 KW 18: Elf and Zw\u00f6lf (ErsatzPersons: Eins and Vier)",
+      "2026 KW 24: Elf and Zw\u00f6lf (ErsatzPersons: Vier and Drei)",
+      "2026 KW 30: Elf and Zw\u00f6lf (ErsatzPersons: Drei and Eins)",
+      "2026 KW 36: Elf and Zw\u00f6lf (ErsatzPersons: Zwei and Vier)",
+      "2026 KW 42: Elf and Zw\u00f6lf (ErsatzPersons: Eins and Zwei)",
+      "2026 KW 48: Elf and Zw\u00f6lf (ErsatzPersons: Vier and Zwei)"
+    ],
+    "Zw\u00f6lf": [
+      "2026 KW 1: Elf and Zw\u00f6lf (ErsatzPersons: Zwei and Eins)",
+      "2026 KW 12: Elf and Zw\u00f6lf (ErsatzPersons: Vier and Zwei)",
+      "2026 KW 18: Elf and Zw\u00f6lf (ErsatzPersons: Eins and Vier)",
+      "2026 KW 24: Elf and Zw\u00f6lf (ErsatzPersons: Vier and Drei)",
+      "2026 KW 30: Elf and Zw\u00f6lf (ErsatzPersons: Drei and Eins)",
+      "2026 KW 36: Elf and Zw\u00f6lf (ErsatzPersons: Zwei and Vier)",
+      "2026 KW 42: Elf and Zw\u00f6lf (ErsatzPersons: Eins and Zwei)",
+      "2026 KW 48: Elf and Zw\u00f6lf (ErsatzPersons: Vier and Zwei)"
+    ]
+  },
+  "EXPERIENCE_OVERRIDES": {}
+}
