@@ -3,65 +3,54 @@ from tkinter import messagebox, ttk
 import data
 from data import save_to_file, refresh_dependencies, add_new_person_with_context, remove_person_and_rebalance, reload_current_data, get_available_years, load_year_data, get_current_year, get_week_data, get_week_data_with_ersatz, update_week_data, update_week_data_with_ersatz, get_person_experience_level, set_person_experience_level, remove_person_experience_override, get_all_experience_levels, analyze_watering_imbalance, balance_watering_history, get_watering_history_report
 from schedule import show_schedule
+from tabelle_management import TabelleManager
 import datetime
 import re
 
 # Try to import theme integration, fallback to basic styling if not available
 try:
-    from theme_integration import apply_rki_theme_to_app, RKIColors
+    from theme_integration import apply_rki_theme_to_app, RKIModernColors
     THEME_AVAILABLE = True
-except ImportError:
+    print("✅ Theme integration imported successfully")
+except ImportError as e:
     THEME_AVAILABLE = False
+    print(f"❌ Theme integration failed: {e}")
 
 # Create the GUI
 root = tk.Tk()
 root.title("Gießplan Generator - Rotkreuz-Institut BBW")
-root.geometry("900x700")
+root.geometry("1200x800")  # Increased size for modern layout
 
 # Apply theme
 if THEME_AVAILABLE:
-    # Apply Red Cross Institute theme
-    theme, widgets = apply_rki_theme_to_app(root)
-    colors = RKIColors()
+    print("🎨 Applying modern theme...")
+    # Apply Red Cross Institute modern dark theme
+    theme, widgets = apply_rki_theme_to_app(root, modern_theme=True)
+    theme_instance = theme  # Make theme_instance available
+    colors = RKIModernColors()
+    print("✅ Modern theme applied successfully")
+    
+    # Add compatibility mappings for legacy color names
+    colors.LIGHT_GRAY = colors.CARD_BACKGROUND
+    colors.RED_CROSS_WHITE = colors.DARK_BACKGROUND
+    colors.PALE_BLUE = colors.SOFT_BLUE
+    colors.PROFESSIONAL_BLUE = colors.PRIMARY_TEXT
+    colors.LIGHT_ORANGE = colors.WARNING_ORANGE
+    colors.WARM_ORANGE = colors.WARNING_ORANGE
+    colors.DARK_GRAY = colors.BORDER_COLOR
+    colors.MEDIUM_GRAY = colors.SECONDARY_TEXT
+    colors.ELECTRIC_BLUE = colors.SOFT_BLUE
+    colors.BRIGHT_BLUE = colors.LIGHT_BLUE
+    colors.MUTED_BLUE = colors.MUTED_BLUE
 else:
-    # Fallback to basic styling
-    root.configure(bg='#f0f0f0')
-    style = ttk.Style()
-    style.theme_use('clam')
-    style.configure('Title.TLabel', font=('Arial', 16, 'bold'))
-    style.configure('Heading.TLabel', font=('Arial', 12, 'bold'))
-    
-    # Create basic widget factory
-    widgets = {
-        'frame': ttk.Frame,
-        'labelframe': ttk.LabelFrame,
-        'label': ttk.Label,
-        'title_label': lambda parent, text: ttk.Label(parent, text=text, style='Title.TLabel'),
-        'heading_label': lambda parent, text: ttk.Label(parent, text=text, style='Heading.TLabel'),
-        'button': ttk.Button,
-        'primary_button': ttk.Button,
-        'success_button': ttk.Button,
-        'entry': ttk.Entry,
-        'combobox': ttk.Combobox,
-        'treeview': ttk.Treeview,
-        'notebook': ttk.Notebook,
-        'scrollbar': ttk.Scrollbar
-    }
-    
-    # Basic color scheme
-    class BasicColors:
-        RED_CROSS_WHITE = '#ffffff'
-        LIGHT_GRAY = '#f0f0f0'
-        DARK_GRAY = '#333333'
-        PROFESSIONAL_BLUE = '#0066cc'
-        PALE_BLUE = '#e6f3ff'
-        WARM_ORANGE = '#ff8800'
-        LIGHT_ORANGE = '#ffe6cc'
-    
-    colors = BasicColors()
+    # Fallback to basic theme
+    theme_instance = theme_integration.RKITheme(root, modern_theme=False)
+    theme_instance.apply_theme()
+    widgets = theme_integration.create_styled_widgets(modern_theme=False)
+    colors = theme_instance.colors
 
-# Create main container with tabs
-main_frame = widgets['frame'](root, padding="15")
+# Create main container with professional spacing
+main_frame = widgets['frame'](root, padding="20")
 main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 # Configure grid weights
@@ -111,6 +100,10 @@ def on_year_changed(event=None):
             # Update all displays with the new year data
             update_all_displays()
             update_status()
+            # Update tabelle manager for new year
+            if 'tabelle_manager' in globals():
+                tabelle_manager.update_csv_file_path()
+                tabelle_manager.update_displays()
             messagebox.showinfo("Success", f"Switched to year {selected_year}")
         else:
             messagebox.showerror("Error", f"No data file found for year {selected_year}")
@@ -123,7 +116,7 @@ def on_year_changed(event=None):
 year_combobox.bind('<<ComboboxSelected>>', on_year_changed)
 
 # Refresh years button
-refresh_years_btn = widgets['button'](year_frame, text="🔄 Refresh Years", command=refresh_years)
+refresh_years_btn = widgets['small_button'](year_frame, text="🔄 Refresh Years", command=refresh_years)
 refresh_years_btn.grid(row=0, column=2, padx=(10, 0))
 
 # Current year info
@@ -146,6 +139,9 @@ def update_status():
 notebook = widgets['notebook'](main_frame)
 notebook.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(10, 0))
 
+# Initialize Tabelle Manager
+tabelle_manager = TabelleManager(main_frame, widgets, colors, theme if THEME_AVAILABLE else None)
+
 # Tab 1: People Management
 people_frame = widgets['frame'](notebook, padding="15")
 notebook.add(people_frame, text="👥 People Management")
@@ -160,15 +156,15 @@ widgets['label'](people_left, text="Name:").grid(row=1, column=0, sticky=tk.W, p
 name_entry = widgets['entry'](people_left, width=20)
 name_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
 
-# Buttons frame
+# Buttons frame with professional spacing
 button_frame = widgets['frame'](people_left)
-button_frame.grid(row=2, column=0, columnspan=2, pady=15)
+button_frame.grid(row=2, column=0, columnspan=2, pady=20)
 
 add_button = widgets['success_button'](button_frame, text="➕ Add Person", command=lambda: add_person())
-add_button.grid(row=0, column=0, padx=(0, 10))
+add_button.grid(row=0, column=0, padx=(0, 15))
 
 delete_button = widgets['button'](button_frame, text="➖ Remove Person", command=lambda: delete_person())
-delete_button.grid(row=0, column=1, padx=(10, 0))
+delete_button.grid(row=0, column=1, padx=(15, 0))
 
 # Experience Level Management Section
 exp_frame = widgets['labelframe'](people_left, text="🎯 Experience Level Management", padding="10")
@@ -190,11 +186,11 @@ exp_level_combo.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=5, padx=(10, 0))
 exp_button_frame = widgets['frame'](exp_frame)
 exp_button_frame.grid(row=2, column=0, columnspan=2, pady=10)
 
-set_exp_button = widgets['primary_button'](exp_button_frame, text="🎯 Set Experience Level", command=lambda: set_experience_level())
-set_exp_button.grid(row=0, column=0, padx=(0, 10))
+set_exp_button = widgets['button'](exp_button_frame, text="🎯 Set Experience Level", command=lambda: set_experience_level())
+set_exp_button.grid(row=0, column=0, padx=(0, 15))
 
 remove_exp_button = widgets['button'](exp_button_frame, text="🔄 Reset to Automatic", command=lambda: remove_experience_override())
-remove_exp_button.grid(row=0, column=1, padx=(10, 0))
+remove_exp_button.grid(row=0, column=1, padx=(15, 0))
 
 # Configure grid weights for experience frame
 exp_frame.columnconfigure(1, weight=1)
@@ -208,10 +204,10 @@ balance_button_frame = widgets['frame'](balance_frame)
 balance_button_frame.grid(row=0, column=0, columnspan=2, pady=10)
 
 analyze_button = widgets['button'](balance_button_frame, text="📊 Analyze Imbalance", command=lambda: show_watering_analysis())
-analyze_button.grid(row=0, column=0, padx=(0, 10))
+analyze_button.grid(row=0, column=0, padx=(0, 15))
 
-balance_button = widgets['primary_button'](balance_button_frame, text="⚖️ Balance History", command=lambda: balance_watering_counts())
-balance_button.grid(row=0, column=1, padx=(10, 0))
+balance_button = widgets['button'](balance_button_frame, text="⚖️ Balance History", command=lambda: balance_watering_counts())
+balance_button.grid(row=0, column=1, padx=(15, 0))
 
 # Configure grid weights for balance frame
 balance_frame.columnconfigure(0, weight=1)
@@ -348,7 +344,8 @@ def show_watering_analysis():
         text_frame = widgets['frame'](analysis_window)
         text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        text_widget = tk.Text(text_frame, wrap=tk.WORD, font=('Consolas', 10))
+        text_widget = tk.Text(text_frame, wrap=tk.WORD)
+        theme_instance.configure_text_widget(text_widget)
         scrollbar = widgets['scrollbar'](text_frame, orient=tk.VERTICAL, command=text_widget.yview)
         text_widget.configure(yscrollcommand=scrollbar.set)
         
@@ -363,7 +360,7 @@ def show_watering_analysis():
         button_frame = widgets['frame'](analysis_window)
         button_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
         
-        balance_btn = widgets['primary_button'](button_frame, text="⚖️ Balance Now", 
+        balance_btn = widgets['button'](button_frame, text="⚖️ Balance Now", 
                                                command=lambda: [balance_watering_counts(), analysis_window.destroy()])
         balance_btn.pack(side=tk.RIGHT, padx=(10, 0))
         
@@ -464,7 +461,7 @@ schedule_type_combo = widgets['combobox'](schedule_controls, textvariable=schedu
                                   state="readonly", width=15)
 schedule_type_combo.grid(row=0, column=1, padx=(0, 15))
 
-generate_button = widgets['primary_button'](schedule_controls, text="🔄 Generate Schedule", command=lambda: generate_and_show_schedule())
+generate_button = widgets['button'](schedule_controls, text="🔄 Generate Schedule", command=lambda: generate_and_show_schedule())
 generate_button.grid(row=0, column=2, padx=(15, 0))
 
 refresh_button = widgets['button'](schedule_controls, text="🔄 Refresh Display", command=lambda: update_all_displays())
@@ -494,11 +491,8 @@ schedule_tree.column('ErsatzPerson 1', width=100)
 schedule_tree.column('ErsatzPerson 2', width=100)
 schedule_tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
 
-# Configure alternating row colors with theme colors
-schedule_tree.tag_configure('oddrow', background=colors.LIGHT_GRAY)
-schedule_tree.tag_configure('evenrow', background=colors.RED_CROSS_WHITE)
-schedule_tree.tag_configure('current_week', background=colors.PALE_BLUE, foreground=colors.PROFESSIONAL_BLUE)
-schedule_tree.tag_configure('next_week', background=colors.LIGHT_ORANGE, foreground=colors.WARM_ORANGE)
+# Configure alternating row colors with theme
+theme_instance.configure_treeview_tags(schedule_tree)
 
 # Scrollbar for schedule treeview
 schedule_tree_scrollbar = widgets['scrollbar'](schedule_container, orient=tk.VERTICAL, command=schedule_tree.yview)
@@ -514,9 +508,8 @@ summary_title = widgets['heading_label'](schedule_summary_frame, text="Schedule 
 summary_title.grid(row=0, column=0, pady=(0, 10))
 
 # Create a canvas for visual schedule representation
-schedule_canvas = tk.Canvas(schedule_summary_frame, width=300, height=400, 
-                          bg=colors.RED_CROSS_WHITE, relief=tk.RIDGE, bd=1,
-                          highlightbackground=colors.LIGHT_GRAY)
+schedule_canvas = tk.Canvas(schedule_summary_frame, width=300, height=400)
+theme_instance.configure_canvas(schedule_canvas)
 schedule_canvas.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 # Canvas scrollbar
@@ -683,7 +676,7 @@ def draw_schedule_visualization(sorted_weeks, week_assignments, current_week, cu
     
     # Draw title
     schedule_canvas.create_text(canvas_width//2, 20, text="Visual Schedule", 
-                              font=('Segoe UI', 14, 'bold'), fill=canvas_colors['title'])
+                              font=theme_instance.get_canvas_font('title'), fill=canvas_colors['title'])
     
     # Draw week blocks
     y_offset = 50
@@ -717,7 +710,7 @@ def draw_schedule_visualization(sorted_weeks, week_assignments, current_week, cu
         
         # Draw week number
         schedule_canvas.create_text(30, y_offset + 15, text=f"Week {week_num}", 
-                                  font=('Segoe UI', 10, 'bold'), anchor='w', fill=canvas_colors['text'])
+                                  font=theme_instance.get_canvas_font('heading'), anchor='w', fill=canvas_colors['text'])
         
         # Get people for this week
         assignment = week_assignments.get(week_num, {'main': [], 'ersatz': []})
@@ -731,35 +724,35 @@ def draw_schedule_visualization(sorted_weeks, week_assignments, current_week, cu
             schedule_canvas.create_rectangle(15, y_offset + 25, 135, y_offset + 45, 
                                            fill=person1_color, outline=colors.DARK_GRAY, width=1)
             schedule_canvas.create_text(75, y_offset + 35, text=person1, 
-                                      font=('Segoe UI', 9), anchor='center', fill=canvas_colors['text'])
+                                      font=theme_instance.get_canvas_font('text'), anchor='center', fill=canvas_colors['text'])
             
             # Draw person 2 section
             person2_color = person_colors.get(person2, colors.LIGHT_GRAY)
             schedule_canvas.create_rectangle(140, y_offset + 25, 260, y_offset + 45, 
                                            fill=person2_color, outline=colors.DARK_GRAY, width=1)
             schedule_canvas.create_text(200, y_offset + 35, text=person2, 
-                                      font=('Segoe UI', 9), anchor='center', fill=canvas_colors['text'])
+                                      font=theme_instance.get_canvas_font('text'), anchor='center', fill=canvas_colors['text'])
         
         y_offset += block_height + 10
     
     # Draw legend
     legend_y = y_offset + 20
     schedule_canvas.create_text(15, legend_y, text="Legend:", 
-                              font=('Segoe UI', 10, 'bold'), anchor='w', fill=canvas_colors['legend'])
+                              font=theme_instance.get_canvas_font('heading'), anchor='w', fill=canvas_colors['legend'])
     
     # Current week indicator
     schedule_canvas.create_rectangle(15, legend_y + 15, 25, legend_y + 25, 
                                    outline=canvas_colors['current_week_border'], width=3, 
                                    fill=canvas_colors['current_week'])
     schedule_canvas.create_text(30, legend_y + 20, text="Current Week", 
-                              font=('Segoe UI', 9), anchor='w', fill=canvas_colors['text'])
+                              font=theme_instance.get_canvas_font('legend'), anchor='w', fill=canvas_colors['text'])
     
     # Next week indicator
     schedule_canvas.create_rectangle(15, legend_y + 35, 25, legend_y + 45, 
                                    outline=canvas_colors['next_week_border'], width=2, 
                                    fill=canvas_colors['next_week'])
     schedule_canvas.create_text(30, legend_y + 40, text="Next Week", 
-                              font=('Segoe UI', 9), anchor='w', fill=canvas_colors['text'])
+                              font=theme_instance.get_canvas_font('legend'), anchor='w', fill=canvas_colors['text'])
 
 def generate_and_show_schedule():
     try:
@@ -824,6 +817,9 @@ def generate_and_show_schedule():
         update_schedule_display()
         update_people_list()
         update_status()
+        # Update tabelle management displays
+        if 'tabelle_manager' in globals():
+            tabelle_manager.update_displays()
         
     except PermissionError:
         messagebox.showerror("File Permission Error", 
@@ -835,6 +831,9 @@ def generate_and_show_schedule():
 # Tab 3: Manual Schedule Management
 manual_frame = widgets['frame'](notebook, padding="15")
 notebook.add(manual_frame, text="✏️ Manual Management")
+
+# Tab 4: Tabelle Management
+tabelle_manager.create_tabelle_tab(notebook)
 
 # Manual date/week management
 manual_mgmt_frame = widgets['labelframe'](manual_frame, text="✏️ Add/Remove Specific Dates or Weeks", padding="15")
@@ -1007,6 +1006,9 @@ def add_date_or_week():
     update_people_list()
     update_schedule_display()
     update_status()
+    # Update tabelle management displays
+    if 'tabelle_manager' in globals():
+        tabelle_manager.update_displays()
     
     # Create success message
     success_message = f"Entry for {year_selection} {week_selection} added successfully."
@@ -1058,6 +1060,9 @@ def delete_date_or_week():
         update_people_list()
         update_schedule_display()
         update_status()
+        # Update tabelle management displays
+        if 'tabelle_manager' in globals():
+            tabelle_manager.update_displays()
         messagebox.showinfo("Success", f"Entry for {year_selection} {week_selection} deleted successfully.")
 
 def get_all_weeks_assignments():
@@ -1084,6 +1089,9 @@ def update_all_displays():
     update_person_combos()
     update_schedule_display()
     update_status()
+    # Update tabelle management displays
+    if 'tabelle_manager' in globals():
+        tabelle_manager.update_displays()
 
 def initialize_gui():
     update_all_displays()

@@ -149,6 +149,79 @@ def select_with_smart_pairing(selection_count, total_weeks_active, new_people, e
     
     return selected_people[:2]  # Ensure we return exactly 2 people
 
+def select_with_dynamic_pairing(selection_count, total_weeks_active):
+    """Dynamic pairing logic that prioritizes pure weight-based fairness with smart pairing preferences"""
+    
+    # Calculate base scores for all people - NO experience bonuses, pure weight-based
+    all_scores = []
+    for i in range(len(data.PEOPLE)):
+        score = calculate_weighted_score(i, selection_count, total_weeks_active)
+        person = data.PEOPLE[i]
+        experience_level = data.get_person_experience_level(person)
+        all_scores.append((person, score, experience_level))
+    
+    # Sort by score (highest first) - pure weight-based order
+    all_scores.sort(key=lambda x: x[1], reverse=True)
+    
+    # If we have less than 2 people, fall back to regular selection
+    if len(all_scores) < 2:
+        return select_regular_two_people([(p, s) for p, s, e in all_scores], total_weeks_active)
+    
+    # Get top candidates based on weights only
+    top_candidates = all_scores[:min(4, len(all_scores))]
+    
+    selected_people = []
+    
+    # Strategy: Use weighted selection, but if a new person gets selected,
+    # try to pair them with experienced people when possible
+    
+    # First selection: Pure weight-based selection from top candidates
+    candidates = [p for p, s, e in top_candidates]
+    weights = [s for p, s, e in top_candidates]
+    
+    if candidates:
+        first_person = random.choices(candidates, weights=weights, k=1)[0]
+        first_person_experience = next((e for p, s, e in top_candidates if p == first_person), "experienced")
+        selected_people.append(first_person)
+        
+        # Second selection: If first person is new, prefer experienced people for pairing
+        remaining_candidates = [(p, s, e) for p, s, e in top_candidates if p != first_person]
+        
+        if first_person_experience == "new" and remaining_candidates:
+            # Try to find experienced/learning people in remaining top candidates
+            experienced_candidates = [(p, s) for p, s, e in remaining_candidates if e in ["experienced", "learning"]]
+            
+            if experienced_candidates and len(experienced_candidates) > 0:
+                # Use weighted selection among experienced people
+                exp_people = [p for p, s in experienced_candidates[:2]]  # Top 2 experienced
+                exp_weights = [s for p, s in experienced_candidates[:2]]
+                if exp_people:
+                    second_person = random.choices(exp_people, weights=exp_weights, k=1)[0]
+                    selected_people.append(second_person)
+            else:
+                # No experienced people available, use regular weight-based selection
+                if remaining_candidates:
+                    remaining_people = [p for p, s, e in remaining_candidates[:2]]
+                    remaining_weights = [s for p, s, e in remaining_candidates[:2]]
+                    if remaining_people:
+                        second_person = random.choices(remaining_people, weights=remaining_weights, k=1)[0]
+                        selected_people.append(second_person)
+        else:
+            # First person is not new, OR no experienced people available
+            # Use pure weight-based selection for second person
+            if remaining_candidates:
+                remaining_people = [p for p, s, e in remaining_candidates[:2]]
+                remaining_weights = [s for p, s, e in remaining_candidates[:2]]
+                if remaining_people:
+                    second_person = random.choices(remaining_people, weights=remaining_weights, k=1)[0]
+                    selected_people.append(second_person)
+    
+    # Fallback to regular selection if needed
+    if len(selected_people) < 2:
+        return select_regular_two_people([(p, s) for p, s, e in all_scores], total_weeks_active)
+    
+    return selected_people[:2]  # Ensure we return exactly 2 people
+
 def select_regular_two_people(all_scores, total_weeks_active):
     """Regular selection logic for two people"""
     if total_weeks_active <= 4:
@@ -191,7 +264,7 @@ def select_regular_two_people(all_scores, total_weeks_active):
     return selected
 
 def select_people_weighted_mean(selection_count, current_week_in_year=None):
-    """Select 2 people using weighted arithmetic mean approach with smart pairing"""
+    """Select 2 people using weighted arithmetic mean approach with dynamic pairing"""
     # Calculate total weeks active in system - filter out non-list entries
     all_week_entries = []
     for entries in data.watering_history.values():
@@ -211,12 +284,8 @@ def select_people_weighted_mean(selection_count, current_week_in_year=None):
     else:
         total_weeks_active = base_total_weeks_active
     
-    # Get experience levels for smart pairing
-    new_people = data.get_new_people()
-    experienced_people = data.get_experienced_people()
-    
-    # Always use smart pairing logic which implements the multi-tiered priority system
-    return select_with_smart_pairing(selection_count, total_weeks_active, new_people, experienced_people)
+    # Use dynamic pairing logic - experience-based but not fixed pairs
+    return select_with_dynamic_pairing(selection_count, total_weeks_active)
 
 def calculate_weighted_score_extra(person_index, selection_count, total_weeks_active=None):
     """Calculate weighted arithmetic mean score for a person using extra weights"""
@@ -317,8 +386,8 @@ def select_ersatz_people_weighted_mean(selection_count, excluded_persons=None, c
         if top_new_person and best_experienced_person:
             return [top_new_person, best_experienced_person]
     
-    # Use regular selection logic for ersatz persons
-    return select_regular_two_people_from_scores(scores, total_weeks_active)
+    # Use dynamic pairing logic for ersatz selection too
+    return select_dynamic_ersatz_pairing(scores, total_weeks_active)
 
 def select_regular_two_people_from_scores(scores, total_weeks_active):
     """Regular selection logic for two people from pre-calculated scores"""
@@ -360,6 +429,71 @@ def select_regular_two_people_from_scores(scores, total_weeks_active):
             remaining_weights.pop(idx)
     
     return selected
+
+def select_dynamic_ersatz_pairing(scores, total_weeks_active):
+    """Dynamic pairing logic for ersatz selection - pure weight-based with smart pairing preferences"""
+    
+    # If we have fewer than 2 people available, use regular selection
+    if len(scores) < 2:
+        return select_regular_two_people_from_scores(scores, total_weeks_active)
+    
+    # Get experience levels for available people - NO score bonuses, pure weight-based
+    scores_with_experience = []
+    for person, score in scores:
+        experience_level = data.get_person_experience_level(person)
+        scores_with_experience.append((person, score, experience_level))
+    
+    # Sort by score (highest first) - pure weight-based order
+    scores_with_experience.sort(key=lambda x: x[1], reverse=True)
+    
+    # Get top candidates
+    top_candidates = scores_with_experience[:min(4, len(scores_with_experience))]
+    
+    selected_people = []
+    
+    # First selection: Pure weight-based selection from top candidates
+    candidates = [p for p, s, e in top_candidates]
+    weights = [s for p, s, e in top_candidates]
+    
+    if candidates:
+        first_person = random.choices(candidates, weights=weights, k=1)[0]
+        first_person_experience = next((e for p, s, e in top_candidates if p == first_person), "experienced")
+        selected_people.append(first_person)
+        
+        # Second selection: If first person is new, prefer experienced people for pairing
+        remaining_candidates = [(p, s, e) for p, s, e in top_candidates if p != first_person]
+        
+        if first_person_experience == "new" and remaining_candidates:
+            # Try to find experienced/learning people in remaining top candidates
+            experienced_candidates = [(p, s) for p, s, e in remaining_candidates if e in ["experienced", "learning"]]
+            
+            if experienced_candidates:
+                # Use weighted selection among experienced people
+                exp_people = [p for p, s in experienced_candidates[:2]]
+                exp_weights = [s for p, s in experienced_candidates[:2]]
+                if exp_people:
+                    second_person = random.choices(exp_people, weights=exp_weights, k=1)[0]
+                    selected_people.append(second_person)
+            else:
+                # No experienced people available, use regular weight-based selection
+                remaining_people = [p for p, s, e in remaining_candidates[:2]]
+                remaining_weights = [s for p, s, e in remaining_candidates[:2]]
+                if remaining_people:
+                    second_person = random.choices(remaining_people, weights=remaining_weights, k=1)[0]
+                    selected_people.append(second_person)
+        else:
+            # First person is not new, use pure weight-based selection for second person
+            remaining_people = [p for p, s, e in remaining_candidates[:2]]
+            remaining_weights = [s for p, s, e in remaining_candidates[:2]]
+            if remaining_people:
+                second_person = random.choices(remaining_people, weights=remaining_weights, k=1)[0]
+                selected_people.append(second_person)
+    
+    # Final fallback
+    if len(selected_people) < 2:
+        return select_regular_two_people_from_scores(scores, total_weeks_active)
+    
+    return selected_people[:2]
 
 def generate_schedule(schedule_type="Next 6 Weeks"):
     # Reload data to ensure we're using the most current file
