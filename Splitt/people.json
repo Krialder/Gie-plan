@@ -1,0 +1,63 @@
+{
+  "PEOPLE": [
+    "eins",
+    "zwei",
+    "drei",
+    "vier",
+    "fuenf",
+    "sechs",
+    "sieben",
+    "acht",
+    "neun",
+    "zehn",
+    "elf"
+  ],
+  "WEIGHTS": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+  ],
+  "EXTRA_WEIGHTS": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "WATERING_HISTORY": {
+    "eins": [],
+    "zwei": [],
+    "drei": [],
+    "vier": [],
+    "fuenf": [],
+    "sechs": [],
+    "sieben": [],
+    "acht": [],
+    "neun": [],
+    "zehn": [],
+    "elf": []
+  },
+  "EXPERIENCE_OVERRIDES": {},
+  "METADATA": {
+    "created_date": "2025-07-18T11:39:31.225735",
+    "source_year": 2025,
+    "total_people": 11,
+    "description": "Master template with balanced weights",
+    "version": "2.0",
+    "auto_updated": true
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "PEOPLE": [
+    "eins",
+    "zwei",
+    "drei",
+    "vier",
+    "fuenf",
+    "sechs",
+    "sieben",
+    "acht",
+    "neun",
+    "zehn",
+    "elf"
+  ],
+  "WEIGHTS": [
+    7,
+    7,
+    7,
+    8,
+    7,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+  ],
+  "EXTRA_WEIGHTS": [
+    3,
+    3,
+    3,
+    4,
+    3,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+  ],
+  "WATERING_HISTORY": {
+    "eins": [
+      "2025 KW 32: zehn and eins (ErsatzPersons: acht and neun)",
+      "2025 KW 34: zwei and eins (ErsatzPersons: drei and neun)",
+      "2025 KW 39: eins and elf (ErsatzPersons: zehn and drei)",
+      "2025 KW 44: eins and acht (ErsatzPersons: neun and zwei)",
+      "2025 KW 52: fuenf and eins (ErsatzPersons: acht and sechs)"
+    ],
+    "zwei": [
+      "2025 KW 29: zwei and drei (ErsatzPersons: vier and fuenf)",
+      "2025 KW 34: zwei and eins (ErsatzPersons: drei and neun)",
+      "2025 KW 40: zwei and zehn (ErsatzPersons: vier and fuenf)",
+      "2025 KW 45: zwei and elf (ErsatzPersons: neun and vier)",
+      "2025 KW 50: zwei and acht (ErsatzPersons: zehn and eins)"
+    ],
+    "drei": [
+      "2025 KW 29: zwei and drei (ErsatzPersons: vier and fuenf)",
+      "2025 KW 35: drei and vier (ErsatzPersons: neun and sechs)",
+      "2025 KW 41: drei and fuenf (ErsatzPersons: acht and sechs)",
+      "2025 KW 47: sieben and drei (ErsatzPersons: neun and vier)",
+      "2025 KW 51: drei and zehn (ErsatzPersons: vier and eins)"
+    ],
+    "vier": [
+      "2025 KW 30: fuenf and vier (ErsatzPersons: sechs and eins)",
+      "2025 KW 35: drei and vier (ErsatzPersons: neun and sechs)",
+      "2025 KW 43: zehn and vier (ErsatzPersons: elf and acht)",
+      "2025 KW 48: sechs and vier (ErsatzPersons: elf and acht)"
+    ],
+    "fuenf": [
+      "2025 KW 30: fuenf and vier (ErsatzPersons: sechs and eins)",
+      "2025 KW 36: sieben and fuenf (ErsatzPersons: zehn and neun)",
+      "2025 KW 41: drei and fuenf (ErsatzPersons: acht and sechs)",
+      "2025 KW 46: fuenf and neun (ErsatzPersons: sechs and drei)",
+      "2025 KW 52: fuenf and eins (ErsatzPersons: acht and sechs)"
+    ],
+    "sechs": [
+      "2025 KW 31: sechs and sieben (ErsatzPersons: eins and acht)",
+      "2025 KW 38: neun and sechs (ErsatzPersons: eins and zehn)",
+      "2025 KW 42: sieben and sechs (ErsatzPersons: vier and acht)",
+      "2025 KW 48: sechs and vier (ErsatzPersons: elf and acht)"
+    ],
+    "sieben": [
+      "2025 KW 31: sechs and sieben (ErsatzPersons: eins and acht)",
+      "2025 KW 36: sieben and fuenf (ErsatzPersons: zehn and neun)",
+      "2025 KW 42: sieben and sechs (ErsatzPersons: vier and acht)",
+      "2025 KW 47: sieben and drei (ErsatzPersons: neun and vier)"
+    ],
+    "acht": [
+      "2025 KW 33: elf and acht (ErsatzPersons: neun and zwei)",
+      "2025 KW 37: neun and acht (ErsatzPersons: sechs and zehn)",
+      "2025 KW 44: eins and acht (ErsatzPersons: neun and zwei)",
+      "2025 KW 50: zwei and acht (ErsatzPersons: zehn and eins)"
+    ],
+    "neun": [
+      "2025 KW 37: neun and acht (ErsatzPersons: sechs and zehn)",
+      "2025 KW 38: neun and sechs (ErsatzPersons: eins and zehn)",
+      "2025 KW 46: fuenf and neun (ErsatzPersons: sechs and drei)",
+      "2025 KW 49: elf and neun (ErsatzPersons: zehn and eins)"
+    ],
+    "zehn": [
+      "2025 KW 32: zehn and eins (ErsatzPersons: acht and neun)",
+      "2025 KW 40: zwei and zehn (ErsatzPersons: vier and fuenf)",
+      "2025 KW 43: zehn and vier (ErsatzPersons: elf and acht)",
+      "2025 KW 51: drei and zehn (ErsatzPersons: vier and eins)"
+    ],
+    "elf": [
+      "2025 KW 33: elf and acht (ErsatzPersons: neun and zwei)",
+      "2025 KW 39: eins and elf (ErsatzPersons: zehn and drei)",
+      "2025 KW 45: zwei and elf (ErsatzPersons: neun and vier)",
+      "2025 KW 49: elf and neun (ErsatzPersons: zehn and eins)"
+    ]
+  },
+  "EXPERIENCE_OVERRIDES": {}
+}
